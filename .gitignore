@@ -3,6 +3,9 @@ dist/
 build/
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+*.tsbuildinfo
 .env
 .env.local
 .DS_Store
