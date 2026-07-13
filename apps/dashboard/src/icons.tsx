@@ -74,6 +74,70 @@ export function IconEmpty({ className }: IconProps) {
   );
 }
 
+export function IconCopy({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+      <path d="M4 2h7a1 1 0 011 1v1h1a1 1 0 011 1v8a1 1 0 01-1 1H6a1 1 0 01-1-1v-1H4a1 1 0 01-1-1V3a1 1 0 011-1zm1 2v8h7V4H5zm-1 1H3v7h1V5z" />
+    </svg>
+  );
+}
+
+export function IconEye({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M8 3C4.5 3 1.7 5.4.5 8c1.2 2.6 4 5 7.5 5s6.3-2.4 7.5-5C14.3 5.4 11.5 3 8 3zm0 2.2a2.8 2.8 0 110 5.6 2.8 2.8 0 010-5.6zM8 6a2 2 0 100 4 2 2 0 000-4z" />
+    </svg>
+  );
+}
+
+export function IconEyeOff({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M2.3 1.6L1 2.9l2.4 2.4C2.3 6.5 1.2 7.6.5 8c1.2 2.6 4 5 7.5 5 1.4 0 2.7-.3 3.9-.8l2.3 2.3 1.3-1.3L2.3 1.6zM8 11.8a2.8 2.8 0 01-2.5-1.5l1.1-1.1a1.5 1.5 0 002.4-.9h1.5a2.8 2.8 0 01-2.5 3.5zM14.1 6.8l-1.3 1.3a5.5 5.5 0 00-1.1-1.5L13 4.3c.7.8 1.3 1.6 1.7 2.5h-.6z" />
+    </svg>
+  );
+}
+
+export function IconClose({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+      <path d="M3.5 3.5l9 9 1-1-9-9-1 1zm9 0l-9 9 1 1 9-9-1-1z" />
+    </svg>
+  );
+}
+
+export function IconMetricAgents({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+      <path d="M10 3a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM4 16c0-2.8 2.7-4.5 6-4.5s6 1.7 6 4.5V17H4v-1z" />
+    </svg>
+  );
+}
+
+export function IconMetricPending({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+      <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 2a6 6 0 110 12 6 6 0 010-12zm-.5 3v4.5l3.5 2.1.8-1.3-2.8-1.7V7H9.5z" />
+    </svg>
+  );
+}
+
+export function IconMetricSpend({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+      <path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm.5 3v4.3l3.5 2-.8 1.3-4.2-2.4V5h1.5z" />
+    </svg>
+  );
+}
+
+export function IconMetricBlocked({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+      <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.5 4.5l-7 7 1 1 7-7-1-1z" />
+    </svg>
+  );
+}
+
 export function IconLogo({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 28 28" width="28" height="28">
