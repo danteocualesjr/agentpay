@@ -8,6 +8,10 @@ export function setApiKey(key: string) {
   localStorage.setItem(API_KEY_STORAGE, key);
 }
 
+export function clearApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE);
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const apiKey = getApiKey();
   const res = await fetch(path, {
