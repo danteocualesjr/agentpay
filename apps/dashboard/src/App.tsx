@@ -1,8 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry } from './api';
 import {
   IconAgents,
+  IconAlert,
+  IconBlock,
+  IconCheck,
+  IconClock,
+  IconClose,
+  IconCopy,
+  IconDollar,
   IconEmpty,
+  IconEye,
+  IconEyeOff,
   IconHome,
   IconLedger,
   IconLogo,
@@ -11,6 +20,7 @@ import {
   IconRefresh,
   IconSearch,
   IconShield,
+  IconUsers,
 } from './icons';
 
 type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate';
@@ -173,8 +183,35 @@ function EmptyState({ title, description }: { title: string; description: string
   );
 }
 
+function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <button
+      className={`copy-btn ${copied ? 'copied' : ''}`}
+      onClick={copy}
+      title={copied ? 'Copied!' : label}
+      aria-label={copied ? 'Copied' : label}
+    >
+      {copied ? <IconCheck /> : <IconCopy />}
+    </button>
+  );
+}
+
 export default function App() {
+  const searchRef = useRef<HTMLInputElement>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [apiKey, setApiKeyState] = useState(getApiKey());
   const [tab, setTab] = useState<Tab>('overview');
   const [search, setSearch] = useState('');
@@ -185,11 +222,15 @@ export default function App() {
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [dismissedError, setDismissedError] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [simAmount, setSimAmount] = useState('499');
   const [simMerchant, setSimMerchant] = useState('api.search.io');
   const [simReason, setSimReason] = useState('Paid search API query batch');
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(SIM_PRESETS[0].label);
   const [simulating, setSimulating] = useState(false);
+  const [pendingBannerDismissed, setPendingBannerDismissed] = useState(false);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -200,6 +241,7 @@ export default function App() {
     if (!getApiKey()) return;
     setLoading(true);
     setError('');
+    setDismissedError('');
     try {
       const [a, authz] = await Promise.all([api.agents(), api.authorizations()]);
       setAgents(a.data);
@@ -210,6 +252,7 @@ export default function App() {
         const led = await api.ledger(agentId);
         setLedger(led.data);
       }
+      setLastRefreshed(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -220,6 +263,21 @@ export default function App() {
   useEffect(() => {
     if (apiKey) refresh();
   }, [apiKey, refresh]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === 'Escape' && document.activeElement === searchRef.current) {
+        setSearch('');
+        searchRef.current?.blur();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   function saveKey() {
     const val = apiKeyInput.trim();
@@ -256,15 +314,26 @@ export default function App() {
             <h2>Sign in</h2>
             <p className="login-subtitle">Paste your test API key from <code>npm run seed</code></p>
             <label className="field-label" htmlFor="api-key">API key</label>
-            <input
-              id="api-key"
-              className="field-input"
-              placeholder="ap_test_..."
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && saveKey()}
-              autoFocus
-            />
+            <div className="field-with-action">
+              <input
+                id="api-key"
+                className="field-input"
+                type={showApiKey ? 'text' : 'password'}
+                placeholder="ap_test_..."
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="field-action-btn"
+                onClick={() => setShowApiKey((v) => !v)}
+                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+              >
+                {showApiKey ? <IconEyeOff /> : <IconEye />}
+              </button>
+            </div>
             <button className="btn btn-primary btn-full" onClick={saveKey}>
               Continue
             </button>
@@ -330,10 +399,13 @@ export default function App() {
     setSimAmount(preset.amount);
     setSimMerchant(preset.merchant);
     setSimReason(preset.reason);
+    setSelectedPreset(preset.label);
   }
 
   const page = PAGE_META[tab];
   const initialLoad = loading && agents.length === 0;
+  const visibleError = error && error !== dismissedError;
+  const simAmountCents = Number(simAmount) || 0;
 
   return (
     <div className="shell">
@@ -397,14 +469,30 @@ export default function App() {
             <div className="search-box">
               <IconSearch className="search-icon" />
               <input
-                placeholder="Search merchants, reasons…"
+                ref={searchRef}
+                placeholder="Search merchants, reasons…  /"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search"
               />
+              {search && (
+                <button
+                  className="search-clear"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                >
+                  <IconClose />
+                </button>
+              )}
             </div>
           </div>
           <div className="topbar-actions">
+            {lastRefreshed && (
+              <span className="last-refreshed" title={formatDate(lastRefreshed.toISOString())}>
+                <IconClock />
+                Updated {formatRelative(lastRefreshed.toISOString())}
+              </span>
+            )}
             <button className="btn btn-ghost" onClick={refresh} disabled={loading}>
               <IconRefresh className={loading ? 'spin' : ''} />
               {loading ? 'Loading…' : 'Refresh'}
@@ -425,7 +513,42 @@ export default function App() {
             <p className="page-description">{page.description}</p>
           </div>
 
-          {error && <div className="alert alert-error" role="alert">{error}</div>}
+          {visibleError && (
+            <div className="alert alert-error" role="alert">
+              <span>{error}</span>
+              <button
+                className="alert-dismiss"
+                onClick={() => setDismissedError(error)}
+                aria-label="Dismiss error"
+              >
+                <IconClose />
+              </button>
+            </div>
+          )}
+
+          {tab === 'overview' && pending.length > 0 && !pendingBannerDismissed && (
+            <div className="pending-banner" role="status">
+              <div className="pending-banner-content">
+                <IconAlert className="pending-banner-icon" />
+                <div>
+                  <strong>{pending.length} approval{pending.length !== 1 ? 's' : ''} awaiting review</strong>
+                  <p>Review pending spend requests before they expire.</p>
+                </div>
+              </div>
+              <div className="pending-banner-actions">
+                <button className="btn btn-sm btn-primary" onClick={() => setTab('authorizations')}>
+                  Review now
+                </button>
+                <button
+                  className="alert-dismiss"
+                  onClick={() => setPendingBannerDismissed(true)}
+                  aria-label="Dismiss banner"
+                >
+                  <IconClose />
+                </button>
+              </div>
+            </div>
+          )}
 
           {tab === 'overview' && (
             <>
@@ -434,24 +557,36 @@ export default function App() {
               ) : (
                 <div className="metrics-row">
                   <div className="metric-card">
-                    <span className="metric-label">Active agents</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-agents"><IconUsers /></span>
+                      <span className="metric-label">Active agents</span>
+                    </div>
                     <span className="metric-value">{agents.filter((a) => a.status === 'active').length}</span>
                     <span className="metric-delta">{agents.length} total configured</span>
                   </div>
                   <div className={`metric-card${pending.length ? ' highlight' : ''}`}>
-                    <span className="metric-label">Pending approvals</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-pending"><IconShield /></span>
+                      <span className="metric-label">Pending approvals</span>
+                    </div>
                     <span className="metric-value">{pending.length}</span>
                     <span className="metric-delta">
                       {pending.length ? 'Needs your review' : 'All clear'}
                     </span>
                   </div>
                   <div className="metric-card">
-                    <span className="metric-label">Captured spend</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-spend"><IconDollar /></span>
+                      <span className="metric-label">Captured spend</span>
+                    </div>
                     <span className="metric-value">{formatMoney(capturedTotal)}</span>
                     <span className="metric-delta">Lifetime captured</span>
                   </div>
                   <div className="metric-card">
-                    <span className="metric-label">Blocked requests</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-blocked"><IconBlock /></span>
+                      <span className="metric-label">Blocked requests</span>
+                    </div>
                     <span className="metric-value">{blockedCount}</span>
                     <span className="metric-delta">Policy enforcement</span>
                   </div>
@@ -563,7 +698,10 @@ export default function App() {
                       <tr key={a.id}>
                         <td>
                           <strong>{a.name}</strong>
-                          <div className="resource-id">{a.id}</div>
+                          <div className="resource-id-row">
+                            <span className="resource-id">{a.id}</span>
+                            <CopyButton text={a.id} label="Copy agent ID" />
+                          </div>
                         </td>
                         <td>{formatMoney(a.daily_budget_cents)}</td>
                         <td>{formatMoney(a.approval_threshold_cents)}</td>
@@ -727,7 +865,7 @@ export default function App() {
                   {SIM_PRESETS.map((preset) => (
                     <button
                       key={preset.label}
-                      className={`preset-card preset-${preset.variant}`}
+                      className={`preset-card preset-${preset.variant}${selectedPreset === preset.label ? ' selected' : ''}`}
                       onClick={() => applyPreset(preset)}
                     >
                       <span className="preset-title">{preset.label}</span>
@@ -752,26 +890,42 @@ export default function App() {
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>
-                <label className="field-label" htmlFor="sim-amount">Amount (cents)</label>
+                <label className="field-label" htmlFor="sim-amount">
+                  Amount (cents)
+                  {simAmountCents > 0 && (
+                    <span className="amount-preview">= {formatMoney(simAmountCents)}</span>
+                  )}
+                </label>
                 <input
                   id="sim-amount"
                   className="field-input"
+                  type="number"
+                  min="1"
                   value={simAmount}
-                  onChange={(e) => setSimAmount(e.target.value)}
+                  onChange={(e) => {
+                    setSimAmount(e.target.value);
+                    setSelectedPreset(null);
+                  }}
                 />
                 <label className="field-label" htmlFor="sim-merchant">Merchant</label>
                 <input
                   id="sim-merchant"
                   className="field-input"
                   value={simMerchant}
-                  onChange={(e) => setSimMerchant(e.target.value)}
+                  onChange={(e) => {
+                    setSimMerchant(e.target.value);
+                    setSelectedPreset(null);
+                  }}
                 />
                 <label className="field-label" htmlFor="sim-reason">Reason</label>
                 <input
                   id="sim-reason"
                   className="field-input"
                   value={simReason}
-                  onChange={(e) => setSimReason(e.target.value)}
+                  onChange={(e) => {
+                    setSimReason(e.target.value);
+                    setSelectedPreset(null);
+                  }}
                 />
                 <button className="btn btn-primary btn-full" onClick={simulateSpend} disabled={simulating}>
                   {simulating ? 'Submitting…' : 'Request authorization'}
