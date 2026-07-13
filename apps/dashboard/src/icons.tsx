@@ -73,3 +73,27 @@ export function IconLogo({ className }: IconProps) {
     </svg>
   );
 }
+
+export function IconCheck({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M13.5 4.5L6.5 11.5 2.5 7.5l1.4-1.4 2.7 2.7 5.6-5.6 1.3 1.3z" />
+    </svg>
+  );
+}
+
+export function IconX({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M12.5 3.5l-9 9 1 1 9-9-1-1zM3.5 3.5l9 9-1 1-9-9 1-1z" />
+    </svg>
+  );
+}
+
+export function IconSignOut({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M6 2H3.5A1.5 1.5 0 002 3.5v9A1.5 1.5 0 003.5 14H6v-1.5H3.5V3.5H6V2zm1.4 3.1L9.9 7H5v1.5h4.9l-2.5 2.4 1.1 1.1 4.5-4.3-4.5-4.3-1.1 1.1z" />
+    </svg>
+  );
+}
