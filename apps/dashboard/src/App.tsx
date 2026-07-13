@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry } from './api';
 import {
   IconAgents,
+  IconClose,
+  IconCopy,
   IconEmpty,
+  IconEye,
+  IconEyeOff,
   IconHome,
   IconLedger,
   IconLogo,
@@ -173,6 +177,44 @@ function EmptyState({ title, description }: { title: string; description: string
   );
 }
 
+function CopyButton({ value, label }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="copy-btn"
+      onClick={copy}
+      title={label ?? 'Copy to clipboard'}
+      aria-label={label ?? 'Copy to clipboard'}
+    >
+      <IconCopy />
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
+function DismissibleAlert({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div className="alert alert-error alert-dismissible" role="alert">
+      <span>{message}</span>
+      <button type="button" className="alert-dismiss" onClick={onDismiss} aria-label="Dismiss">
+        <IconClose />
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKey, setApiKeyState] = useState(getApiKey());
@@ -190,6 +232,9 @@ export default function App() {
   const [simMerchant, setSimMerchant] = useState('api.search.io');
   const [simReason, setSimReason] = useState('Paid search API query batch');
   const [simulating, setSimulating] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -210,6 +255,7 @@ export default function App() {
         const led = await api.ledger(agentId);
         setLedger(led.data);
       }
+      setLastRefreshed(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -220,6 +266,21 @@ export default function App() {
   useEffect(() => {
     if (apiKey) refresh();
   }, [apiKey, refresh]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setSearch('');
+        (document.activeElement as HTMLElement)?.blur();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   function saveKey() {
     const val = apiKeyInput.trim();
@@ -256,15 +317,26 @@ export default function App() {
             <h2>Sign in</h2>
             <p className="login-subtitle">Paste your test API key from <code>npm run seed</code></p>
             <label className="field-label" htmlFor="api-key">API key</label>
-            <input
-              id="api-key"
-              className="field-input"
-              placeholder="ap_test_..."
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && saveKey()}
-              autoFocus
-            />
+            <div className="field-with-action">
+              <input
+                id="api-key"
+                className="field-input"
+                type={showApiKey ? 'text' : 'password'}
+                placeholder="ap_test_..."
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="field-action-btn"
+                onClick={() => setShowApiKey((v) => !v)}
+                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+              >
+                {showApiKey ? <IconEyeOff /> : <IconEye />}
+              </button>
+            </div>
             <button className="btn btn-primary btn-full" onClick={saveKey}>
               Continue
             </button>
@@ -332,6 +404,14 @@ export default function App() {
     setSimReason(preset.reason);
   }
 
+  const activePreset = SIM_PRESETS.find(
+    (p) => p.amount === simAmount && p.merchant === simMerchant && p.reason === simReason,
+  );
+
+  const simAmountPreview = Number.isFinite(Number(simAmount)) && simAmount !== ''
+    ? formatMoney(Number(simAmount))
+    : null;
+
   const page = PAGE_META[tab];
   const initialLoad = loading && agents.length === 0;
 
@@ -397,14 +477,32 @@ export default function App() {
             <div className="search-box">
               <IconSearch className="search-icon" />
               <input
+                ref={searchRef}
                 placeholder="Search merchants, reasons…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search"
               />
+              {search ? (
+                <button
+                  type="button"
+                  className="search-clear"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                >
+                  <IconClose />
+                </button>
+              ) : (
+                <kbd className="search-kbd" aria-hidden="true">/</kbd>
+              )}
             </div>
           </div>
           <div className="topbar-actions">
+            {lastRefreshed && (
+              <span className="last-synced" title={formatDate(lastRefreshed.toISOString())}>
+                Updated {formatRelative(lastRefreshed.toISOString())}
+              </span>
+            )}
             <button className="btn btn-ghost" onClick={refresh} disabled={loading}>
               <IconRefresh className={loading ? 'spin' : ''} />
               {loading ? 'Loading…' : 'Refresh'}
@@ -425,7 +523,19 @@ export default function App() {
             <p className="page-description">{page.description}</p>
           </div>
 
-          {error && <div className="alert alert-error" role="alert">{error}</div>}
+          {error && <DismissibleAlert message={error} onDismiss={() => setError('')} />}
+
+          {tab === 'overview' && pending.length > 0 && (
+            <div className="pending-banner">
+              <div className="pending-banner-content">
+                <strong>{pending.length} authorization{pending.length === 1 ? '' : 's'} awaiting review</strong>
+                <span>Approve or deny pending spend requests before they expire.</span>
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={() => setTab('authorizations')}>
+                Review now
+              </button>
+            </div>
+          )}
 
           {tab === 'overview' && (
             <>
@@ -434,11 +544,13 @@ export default function App() {
               ) : (
                 <div className="metrics-row">
                   <div className="metric-card">
+                    <span className="metric-icon metric-icon-agents" aria-hidden="true"><IconAgents /></span>
                     <span className="metric-label">Active agents</span>
                     <span className="metric-value">{agents.filter((a) => a.status === 'active').length}</span>
                     <span className="metric-delta">{agents.length} total configured</span>
                   </div>
                   <div className={`metric-card${pending.length ? ' highlight' : ''}`}>
+                    <span className="metric-icon metric-icon-pending" aria-hidden="true"><IconShield /></span>
                     <span className="metric-label">Pending approvals</span>
                     <span className="metric-value">{pending.length}</span>
                     <span className="metric-delta">
@@ -446,11 +558,13 @@ export default function App() {
                     </span>
                   </div>
                   <div className="metric-card">
+                    <span className="metric-icon metric-icon-spend" aria-hidden="true">$</span>
                     <span className="metric-label">Captured spend</span>
                     <span className="metric-value">{formatMoney(capturedTotal)}</span>
                     <span className="metric-delta">Lifetime captured</span>
                   </div>
                   <div className="metric-card">
+                    <span className="metric-icon metric-icon-blocked" aria-hidden="true">✕</span>
                     <span className="metric-label">Blocked requests</span>
                     <span className="metric-value">{blockedCount}</span>
                     <span className="metric-delta">Policy enforcement</span>
@@ -563,7 +677,10 @@ export default function App() {
                       <tr key={a.id}>
                         <td>
                           <strong>{a.name}</strong>
-                          <div className="resource-id">{a.id}</div>
+                          <div className="resource-id-row">
+                            <span className="resource-id">{a.id}</span>
+                            <CopyButton value={a.id} label="Copy agent ID" />
+                          </div>
                         </td>
                         <td>{formatMoney(a.daily_budget_cents)}</td>
                         <td>{formatMoney(a.approval_threshold_cents)}</td>
@@ -727,8 +844,9 @@ export default function App() {
                   {SIM_PRESETS.map((preset) => (
                     <button
                       key={preset.label}
-                      className={`preset-card preset-${preset.variant}`}
+                      className={`preset-card preset-${preset.variant}${activePreset?.label === preset.label ? ' selected' : ''}`}
                       onClick={() => applyPreset(preset)}
+                      aria-pressed={activePreset?.label === preset.label}
                     >
                       <span className="preset-title">{preset.label}</span>
                       <span className="preset-hint">{preset.hint}</span>
@@ -753,12 +871,17 @@ export default function App() {
                   ))}
                 </select>
                 <label className="field-label" htmlFor="sim-amount">Amount (cents)</label>
-                <input
-                  id="sim-amount"
-                  className="field-input"
-                  value={simAmount}
-                  onChange={(e) => setSimAmount(e.target.value)}
-                />
+                <div className="amount-field">
+                  <input
+                    id="sim-amount"
+                    className="field-input"
+                    value={simAmount}
+                    onChange={(e) => setSimAmount(e.target.value)}
+                  />
+                  {simAmountPreview && (
+                    <span className="amount-preview">{simAmountPreview}</span>
+                  )}
+                </div>
                 <label className="field-label" htmlFor="sim-merchant">Merchant</label>
                 <input
                   id="sim-merchant"

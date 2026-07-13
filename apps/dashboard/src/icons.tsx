@@ -74,6 +74,46 @@ export function IconEmpty({ className }: IconProps) {
   );
 }
 
+export function IconClose({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M3.5 3.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconCopy({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M5 2h7a1 1 0 011 1v9h-1.5V3.5H5V2zm-2 2h7a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1zm1 1v8h6V5H4z" />
+    </svg>
+  );
+}
+
+export function IconClock({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zm0 1.5a5 5 0 110 10 5 5 0 010-10zm.75 2.5v3.1l2.5 1.5-.75 1.3-3-1.8V5.5h1.25z" />
+    </svg>
+  );
+}
+
+export function IconEye({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M8 3C4.5 3 1.7 5.4.5 8c1.2 2.6 4 5 7.5 5s6.3-2.4 7.5-5C14.3 5.4 11.5 3 8 3zm0 1.5c2.5 0 4.7 1.7 5.8 3.5-1.1 1.8-3.3 3.5-5.8 3.5S3.3 9.8 2.2 8C3.3 6.2 5.5 4.5 8 4.5zm0 1.5a2 2 0 100 4 2 2 0 000-4z" />
+    </svg>
+  );
+}
+
+export function IconEyeOff({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M2.3 2.3l11.4 11.4-1.1 1.1-2.4-2.4C8.8 12.7 8.4 12.8 8 12.8c-3.5 0-6.3-2.4-7.5-5 .6-1.3 1.6-2.5 2.8-3.4L1.2 3.4 2.3 2.3zM8 4.2c.3 0 .7 0 1 .1L5.3 8c0-.3-.1-.6-.1-1a2 2 0 012.8-1.8zM13.8 10.1l-1.3-1.3c.5-.6.9-1.3 1.2-2-.9-1.8-3.1-3.5-5.7-3.5-.5 0-1 .1-1.4.2L4.6 3.3C5.6 3.1 6.7 3 8 3c3.5 0 6.3 2.4 7.5 5-.5 1.1-1.2 2.1-2.1 2.9z" />
+    </svg>
+  );
+}
+
 export function IconLogo({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 28 28" width="28" height="28">
