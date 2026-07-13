@@ -1,12 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry } from './api';
 import {
   IconAgents,
+  IconClose,
+  IconCopy,
   IconEmpty,
+  IconEye,
+  IconEyeOff,
   IconHome,
   IconLedger,
   IconLogo,
   IconLogout,
+  IconMetricAgents,
+  IconMetricBlocked,
+  IconMetricPending,
+  IconMetricSpend,
   IconPlay,
   IconRefresh,
   IconSearch,
@@ -15,13 +23,15 @@ import {
 
 type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate';
 
-const NAV: { id: Tab; label: string; icon: typeof IconHome }[] = [
-  { id: 'overview', label: 'Home', icon: IconHome },
-  { id: 'agents', label: 'Agents', icon: IconAgents },
-  { id: 'authorizations', label: 'Approvals', icon: IconShield },
-  { id: 'ledger', label: 'Audit log', icon: IconLedger },
-  { id: 'simulate', label: 'Simulate', icon: IconPlay },
+const NAV: { id: Tab; label: string; icon: typeof IconHome; shortcut: string }[] = [
+  { id: 'overview', label: 'Home', icon: IconHome, shortcut: '1' },
+  { id: 'agents', label: 'Agents', icon: IconAgents, shortcut: '2' },
+  { id: 'authorizations', label: 'Approvals', icon: IconShield, shortcut: '3' },
+  { id: 'ledger', label: 'Audit log', icon: IconLedger, shortcut: '4' },
+  { id: 'simulate', label: 'Simulate', icon: IconPlay, shortcut: '5' },
 ];
+
+const TAB_BY_SHORTCUT = Object.fromEntries(NAV.map((n) => [n.shortcut, n.id])) as Record<string, Tab>;
 
 const PAGE_META: Record<Tab, { title: string; description: string }> = {
   overview: {
@@ -124,6 +134,17 @@ function activityIcon(status: string) {
   return '✕';
 }
 
+function ledgerEventVariant(type: string) {
+  if (type.includes('approved') || type.includes('captured')) return 'success';
+  if (type.includes('requested')) return 'info';
+  if (type.includes('blocked') || type.includes('denied')) return 'danger';
+  return 'neutral';
+}
+
+function formatEventType(type: string) {
+  return type.replace(/_/g, ' ');
+}
+
 function MetricsSkeleton() {
   return (
     <div className="metrics-row">
@@ -163,13 +184,53 @@ function TableSkeleton({ rows = 4, cols = 5 }: { rows?: number; cols?: number })
   );
 }
 
-function EmptyState({ title, description }: { title: string; description: string }) {
+function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: { label: string; onClick: () => void };
+}) {
   return (
     <div className="empty-state">
       <IconEmpty className="empty-icon" />
       <h3>{title}</h3>
       <p>{description}</p>
+      {action && (
+        <button type="button" className="btn btn-primary empty-state-cta" onClick={action.onClick}>
+          {action.label}
+        </button>
+      )}
     </div>
+  );
+}
+
+function CopyIdButton({ id, onCopy }: { id: string; onCopy: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopied(true);
+      onCopy();
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="copy-id-btn"
+      onClick={copy}
+      title="Copy ID"
+      aria-label={`Copy ID ${id}`}
+    >
+      {copied ? 'Copied' : <IconCopy />}
+    </button>
   );
 }
 
@@ -190,6 +251,14 @@ export default function App() {
   const [simMerchant, setSimMerchant] = useState('api.search.io');
   const [simReason, setSimReason] = useState('Paid search API query batch');
   const [simulating, setSimulating] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [dismissedError, setDismissedError] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [confirmDenyId, setConfirmDenyId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -212,14 +281,46 @@ export default function App() {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
+      setDismissedError('');
     } finally {
       setLoading(false);
+      setLastRefreshed(new Date());
     }
   }, [selectedAgent]);
 
   useEffect(() => {
     if (apiKey) refresh();
   }, [apiKey, refresh]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName;
+      const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag);
+
+      if (e.key === '/' && !inField) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+
+      if (e.key === 'Escape') {
+        if (confirmDenyId) {
+          setConfirmDenyId(null);
+          return;
+        }
+        if (search) {
+          setSearch('');
+          searchInputRef.current?.blur();
+        }
+      }
+
+      if (!inField && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tabTarget = TAB_BY_SHORTCUT[e.key];
+        if (tabTarget) setTab(tabTarget);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [search, confirmDenyId]);
 
   function saveKey() {
     const val = apiKeyInput.trim();
@@ -256,15 +357,26 @@ export default function App() {
             <h2>Sign in</h2>
             <p className="login-subtitle">Paste your test API key from <code>npm run seed</code></p>
             <label className="field-label" htmlFor="api-key">API key</label>
-            <input
-              id="api-key"
-              className="field-input"
-              placeholder="ap_test_..."
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && saveKey()}
-              autoFocus
-            />
+            <div className="input-with-toggle">
+              <input
+                id="api-key"
+                className="field-input"
+                placeholder="ap_test_..."
+                type={showApiKey ? 'text' : 'password'}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+                autoFocus
+              />
+              <button
+                type="button"
+                className="input-toggle-btn"
+                onClick={() => setShowApiKey((v) => !v)}
+                aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+              >
+                {showApiKey ? <IconEyeOff /> : <IconEye />}
+              </button>
+            </div>
             <button className="btn btn-primary btn-full" onClick={saveKey}>
               Continue
             </button>
@@ -294,6 +406,9 @@ export default function App() {
 
   async function handleAction(action: 'approve' | 'deny' | 'capture', id: string) {
     setError('');
+    setDismissedError('');
+    const key = `${action}-${id}`;
+    setActionLoading(key);
     try {
       if (action === 'approve') await api.approve(id);
       if (action === 'deny') await api.deny(id);
@@ -303,6 +418,8 @@ export default function App() {
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Action failed');
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -330,16 +447,73 @@ export default function App() {
     setSimAmount(preset.amount);
     setSimMerchant(preset.merchant);
     setSimReason(preset.reason);
+    setActivePreset(preset.label);
   }
+
+  async function goToLedgerForAgent(agentId: string) {
+    setSelectedAgent(agentId);
+    setTab('ledger');
+    try {
+      const led = await api.ledger(agentId);
+      setLedger(led.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load ledger');
+    }
+  }
+
+  const denyTarget = confirmDenyId
+    ? authorizations.find((a) => a.id === confirmDenyId)
+    : null;
 
   const page = PAGE_META[tab];
   const initialLoad = loading && agents.length === 0;
+  const showError = error && error !== dismissedError;
+  const simAmountPreview = Number(simAmount) > 0 ? formatMoney(Number(simAmount)) : null;
+  const hasActiveFilters = statusFilter !== 'all' || search.length > 0;
+  const showSearchKbd = !search && !searchFocused;
 
   return (
     <div className="shell">
       {toast && (
         <div className={`toast toast-${toast.type}`} role="status">
-          {toast.message}
+          <span>{toast.message}</span>
+          <button
+            type="button"
+            className="toast-dismiss"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss notification"
+          >
+            <IconClose />
+          </button>
+        </div>
+      )}
+
+      {denyTarget && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="deny-title">
+          <div className="confirm-dialog">
+            <h3 id="deny-title">Deny authorization?</h3>
+            <p>
+              This will reject the <strong>{formatMoney(denyTarget.amount_cents)}</strong> request
+              from <strong>{denyTarget.merchant}</strong>. This action cannot be undone.
+            </p>
+            <div className="confirm-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setConfirmDenyId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={async () => {
+                  const id = confirmDenyId!;
+                  setConfirmDenyId(null);
+                  await handleAction('deny', id);
+                }}
+                disabled={actionLoading === `deny-${confirmDenyId}`}
+              >
+                {actionLoading === `deny-${confirmDenyId}` ? 'Denying…' : 'Deny request'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -349,7 +523,7 @@ export default function App() {
           AgentPay
         </div>
         <nav className="sidebar-nav" aria-label="Main navigation">
-          {NAV.map(({ id, label, icon: Icon }) => (
+          {NAV.map(({ id, label, icon: Icon, shortcut }) => (
             <button
               key={id}
               className={`sidebar-link ${tab === id ? 'active' : ''}`}
@@ -358,6 +532,7 @@ export default function App() {
             >
               <Icon className="sidebar-icon" />
               <span className="sidebar-link-label">{label}</span>
+              <kbd className="nav-shortcut" aria-hidden="true">{shortcut}</kbd>
               {id === 'authorizations' && pending.length > 0 && (
                 <span className="nav-badge">{pending.length}</span>
               )}
@@ -394,14 +569,32 @@ export default function App() {
         <header className="topbar">
           <div className="topbar-left">
             <span className="test-mode-pill">Test mode</span>
-            <div className="search-box">
+            <div className={`search-box${search ? ' has-value' : ''}`}>
               <IconSearch className="search-icon" />
               <input
+                ref={searchInputRef}
                 placeholder="Search merchants, reasons…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
                 aria-label="Search"
               />
+              {search ? (
+                <button
+                  type="button"
+                  className="search-clear"
+                  onClick={() => {
+                    setSearch('');
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label="Clear search"
+                >
+                  <IconClose />
+                </button>
+              ) : showSearchKbd ? (
+                <kbd className="search-kbd" aria-hidden="true">/</kbd>
+              ) : null}
             </div>
           </div>
           <div className="topbar-actions">
@@ -409,6 +602,11 @@ export default function App() {
               <IconRefresh className={loading ? 'spin' : ''} />
               {loading ? 'Loading…' : 'Refresh'}
             </button>
+            {lastRefreshed && (
+              <span className="last-refreshed" title={formatDate(lastRefreshed.toISOString())}>
+                Updated {formatRelative(lastRefreshed.toISOString())}
+              </span>
+            )}
             {tab !== 'simulate' && (
               <button className="btn btn-primary" onClick={() => setTab('simulate')}>
                 <IconPlay />
@@ -425,8 +623,33 @@ export default function App() {
             <p className="page-description">{page.description}</p>
           </div>
 
-          {error && <div className="alert alert-error" role="alert">{error}</div>}
+          {showError && (
+            <div className="alert alert-error alert-dismissible" role="alert">
+              <span>{error}</span>
+              <button
+                type="button"
+                className="alert-dismiss"
+                onClick={() => setDismissedError(error)}
+                aria-label="Dismiss error"
+              >
+                <IconClose />
+              </button>
+            </div>
+          )}
 
+          {tab === 'overview' && pending.length > 0 && (
+            <div className="pending-banner">
+              <div className="pending-banner-text">
+                <strong>{pending.length} pending approval{pending.length !== 1 ? 's' : ''}</strong>
+                <span>Review authorization requests waiting for your decision.</span>
+              </div>
+              <button className="btn btn-sm btn-primary" onClick={() => setTab('authorizations')}>
+                Review now
+              </button>
+            </div>
+          )}
+
+          <div key={tab} className="page-content">
           {tab === 'overview' && (
             <>
               {initialLoad ? (
@@ -434,24 +657,36 @@ export default function App() {
               ) : (
                 <div className="metrics-row">
                   <div className="metric-card">
-                    <span className="metric-label">Active agents</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-agents"><IconMetricAgents /></span>
+                      <span className="metric-label">Active agents</span>
+                    </div>
                     <span className="metric-value">{agents.filter((a) => a.status === 'active').length}</span>
                     <span className="metric-delta">{agents.length} total configured</span>
                   </div>
                   <div className={`metric-card${pending.length ? ' highlight' : ''}`}>
-                    <span className="metric-label">Pending approvals</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-pending"><IconMetricPending /></span>
+                      <span className="metric-label">Pending approvals</span>
+                    </div>
                     <span className="metric-value">{pending.length}</span>
                     <span className="metric-delta">
                       {pending.length ? 'Needs your review' : 'All clear'}
                     </span>
                   </div>
                   <div className="metric-card">
-                    <span className="metric-label">Captured spend</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-spend"><IconMetricSpend /></span>
+                      <span className="metric-label">Captured spend</span>
+                    </div>
                     <span className="metric-value">{formatMoney(capturedTotal)}</span>
                     <span className="metric-delta">Lifetime captured</span>
                   </div>
                   <div className="metric-card">
-                    <span className="metric-label">Blocked requests</span>
+                    <div className="metric-header">
+                      <span className="metric-icon metric-icon-blocked"><IconMetricBlocked /></span>
+                      <span className="metric-label">Blocked requests</span>
+                    </div>
                     <span className="metric-value">{blockedCount}</span>
                     <span className="metric-delta">Policy enforcement</span>
                   </div>
@@ -483,17 +718,28 @@ export default function App() {
                       <EmptyState
                         title="No activity yet"
                         description="Simulate a spend request to see authorizations here."
+                        action={{ label: 'Simulate spend', onClick: () => setTab('simulate') }}
                       />
                     ) : (
                       <ul className="activity-list">
                         {recentAuth.map((a) => (
-                          <li key={a.id} className="activity-item">
-                            <div className={`activity-icon ${a.status}`}>{activityIcon(a.status)}</div>
-                            <div className="activity-content">
-                              <div className="activity-title">{a.merchant}</div>
-                              <div className="activity-meta">{a.reason} · {formatRelative(a.created_at)}</div>
-                            </div>
-                            <div className="activity-amount">{formatMoney(a.amount_cents)}</div>
+                          <li key={a.id}>
+                            <button
+                              type="button"
+                              className="activity-item activity-item-clickable"
+                              onClick={() => {
+                                setTab('authorizations');
+                                setStatusFilter(a.status);
+                                setSearch(a.merchant);
+                              }}
+                            >
+                              <div className={`activity-icon ${a.status}`}>{activityIcon(a.status)}</div>
+                              <div className="activity-content">
+                                <div className="activity-title">{a.merchant}</div>
+                                <div className="activity-meta">{a.reason} · {formatRelative(a.created_at)}</div>
+                              </div>
+                              <div className="activity-amount">{formatMoney(a.amount_cents)}</div>
+                            </button>
                           </li>
                         ))}
                       </ul>
@@ -514,7 +760,13 @@ export default function App() {
                       const pct = Math.min(100, (spent / a.daily_budget_cents) * 100);
                       const level = budgetBarLevel(pct);
                       return (
-                        <div key={a.id} className="agent-summary-item">
+                        <button
+                          key={a.id}
+                          type="button"
+                          className="agent-summary-item agent-summary-clickable"
+                          onClick={() => goToLedgerForAgent(a.id)}
+                          title={`View ${a.name} audit log`}
+                        >
                           <div className="agent-summary-name">{a.name}</div>
                           <div className="agent-summary-stats">
                             <div>
@@ -533,8 +785,8 @@ export default function App() {
                           <div className="budget-bar">
                             <div className={`budget-bar-fill ${level}`} style={{ width: `${pct}%` }} />
                           </div>
-                          <div className="budget-pct">{pct.toFixed(0)}% used</div>
-                        </div>
+                          <div className="budget-pct">{pct.toFixed(0)}% used · View ledger</div>
+                        </button>
                       );
                     })}
                   </div>
@@ -563,7 +815,10 @@ export default function App() {
                       <tr key={a.id}>
                         <td>
                           <strong>{a.name}</strong>
-                          <div className="resource-id">{a.id}</div>
+                          <div className="resource-id-row">
+                            <span className="resource-id">{a.id}</span>
+                            <CopyIdButton id={a.id} onCopy={() => showToast('ID copied')} />
+                          </div>
                         </td>
                         <td>{formatMoney(a.daily_budget_cents)}</td>
                         <td>{formatMoney(a.approval_threshold_cents)}</td>
@@ -602,16 +857,37 @@ export default function App() {
                   );
                 })}
               </div>
+              {!initialLoad && (
+                <div className="results-bar">
+                  <p className="results-summary">
+                    Showing {filteredAuth.length} of {authorizations.length} authorization{authorizations.length !== 1 ? 's' : ''}
+                    {search && <> matching &ldquo;{search}&rdquo;</>}
+                  </p>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      className="clear-filters-btn"
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setSearch('');
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              )}
               {initialLoad ? (
-                <TableSkeleton cols={6} />
+                <TableSkeleton cols={7} />
               ) : (
-                <div className="table-card">
+                <div className="table-card table-card-sticky">
                   <table>
                     <thead>
                       <tr>
                         <th>Amount</th>
                         <th>Merchant</th>
                         <th>Reason</th>
+                        <th>Created</th>
                         <th>Policy</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -620,10 +896,15 @@ export default function App() {
                     <tbody>
                       {filteredAuth.length === 0 ? (
                         <tr>
-                          <td colSpan={6}>
+                          <td colSpan={7}>
                             <EmptyState
                               title="No matching authorizations"
                               description="Try a different search or simulate a new spend request."
+                              action={
+                                hasActiveFilters
+                                  ? { label: 'Clear filters', onClick: () => { setStatusFilter('all'); setSearch(''); } }
+                                  : { label: 'Simulate spend', onClick: () => setTab('simulate') }
+                              }
                             />
                           </td>
                         </tr>
@@ -632,18 +913,45 @@ export default function App() {
                           <tr key={a.id}>
                             <td><strong>{formatMoney(a.amount_cents)}</strong></td>
                             <td>{a.merchant}</td>
-                            <td>{a.reason}</td>
-                            <td><span className="muted">{a.policy_message}</span></td>
+                            <td className="cell-truncate" title={a.reason}>{a.reason}</td>
+                            <td>
+                              <span className="muted" title={formatDate(a.created_at)}>
+                                {formatRelative(a.created_at)}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="muted cell-truncate" title={a.policy_message ?? undefined}>
+                                {a.policy_message}
+                              </span>
+                            </td>
                             <td><StatusBadge status={a.status} /></td>
                             <td className="actions">
                               {a.status === 'pending' && (
                                 <>
-                                  <button className="btn btn-sm btn-primary" onClick={() => handleAction('approve', a.id)}>Approve</button>
-                                  <button className="btn btn-sm btn-ghost" onClick={() => handleAction('deny', a.id)}>Deny</button>
+                                  <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => handleAction('approve', a.id)}
+                                    disabled={actionLoading === `approve-${a.id}`}
+                                  >
+                                    {actionLoading === `approve-${a.id}` ? 'Approving…' : 'Approve'}
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-ghost"
+                                    onClick={() => setConfirmDenyId(a.id)}
+                                    disabled={actionLoading === `deny-${a.id}`}
+                                  >
+                                    Deny
+                                  </button>
                                 </>
                               )}
                               {a.status === 'approved' && (
-                                <button className="btn btn-sm btn-primary" onClick={() => handleAction('capture', a.id)}>Capture</button>
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => handleAction('capture', a.id)}
+                                  disabled={actionLoading === `capture-${a.id}`}
+                                >
+                                  {actionLoading === `capture-${a.id}` ? 'Capturing…' : 'Capture'}
+                                </button>
                               )}
                             </td>
                           </tr>
@@ -680,7 +988,7 @@ export default function App() {
               {initialLoad ? (
                 <TableSkeleton cols={4} />
               ) : (
-                <div className="table-card">
+                <div className="table-card table-card-sticky">
                   <table>
                     <thead>
                       <tr>
@@ -697,6 +1005,7 @@ export default function App() {
                             <EmptyState
                               title="No ledger entries"
                               description="Events appear here as agents request and capture spend."
+                              action={{ label: 'Simulate spend', onClick: () => setTab('simulate') }}
                             />
                           </td>
                         </tr>
@@ -706,7 +1015,11 @@ export default function App() {
                             <td>
                               <span title={formatDate(e.created_at)}>{formatRelative(e.created_at)}</span>
                             </td>
-                            <td><code className="event-code">{e.type}</code></td>
+                            <td>
+                              <span className={`event-badge event-badge-${ledgerEventVariant(e.type)}`}>
+                                {formatEventType(e.type)}
+                              </span>
+                            </td>
                             <td>{formatMoney(e.amount_cents)}</td>
                             <td>{e.description}</td>
                           </tr>
@@ -727,7 +1040,7 @@ export default function App() {
                   {SIM_PRESETS.map((preset) => (
                     <button
                       key={preset.label}
-                      className={`preset-card preset-${preset.variant}`}
+                      className={`preset-card preset-${preset.variant}${activePreset === preset.label ? ' selected' : ''}`}
                       onClick={() => applyPreset(preset)}
                     >
                       <span className="preset-title">{preset.label}</span>
@@ -752,26 +1065,38 @@ export default function App() {
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>
-                <label className="field-label" htmlFor="sim-amount">Amount (cents)</label>
+                <label className="field-label" htmlFor="sim-amount">
+                  Amount (cents)
+                  {simAmountPreview && <span className="amount-preview">{simAmountPreview}</span>}
+                </label>
                 <input
                   id="sim-amount"
                   className="field-input"
                   value={simAmount}
-                  onChange={(e) => setSimAmount(e.target.value)}
+                  onChange={(e) => {
+                    setSimAmount(e.target.value);
+                    setActivePreset(null);
+                  }}
                 />
                 <label className="field-label" htmlFor="sim-merchant">Merchant</label>
                 <input
                   id="sim-merchant"
                   className="field-input"
                   value={simMerchant}
-                  onChange={(e) => setSimMerchant(e.target.value)}
+                  onChange={(e) => {
+                    setSimMerchant(e.target.value);
+                    setActivePreset(null);
+                  }}
                 />
                 <label className="field-label" htmlFor="sim-reason">Reason</label>
                 <input
                   id="sim-reason"
                   className="field-input"
                   value={simReason}
-                  onChange={(e) => setSimReason(e.target.value)}
+                  onChange={(e) => {
+                    setSimReason(e.target.value);
+                    setActivePreset(null);
+                  }}
                 />
                 <button className="btn btn-primary btn-full" onClick={simulateSpend} disabled={simulating}>
                   {simulating ? 'Submitting…' : 'Request authorization'}
@@ -779,6 +1104,7 @@ export default function App() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>
