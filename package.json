@@ -1,0 +1,18 @@
+{
+  "name": "agentpay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @agentpay/api & npm run dev --workspace @agentpay/dashboard",
+    "dev:api": "npm run dev --workspace @agentpay/api",
+    "dev:dashboard": "npm run dev --workspace @agentpay/dashboard",
+    "build": "npm run build --workspaces --if-present",
+    "seed": "npm run seed --workspace @agentpay/api",
+    "test": "npm run test --workspace @agentpay/policy-core"
+  }
+}
