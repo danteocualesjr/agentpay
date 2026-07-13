@@ -56,6 +56,24 @@ export function IconRefresh({ className }: IconProps) {
   );
 }
 
+export function IconLogout({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3v-1.5H3V3.5h3V2zm7.4 3.1L12.3 6.2l1.8 1.8H6v1.5h8.1l-1.8 1.8 1.1 1.1 3.5-3.5-3.5-3.5z" />
+    </svg>
+  );
+}
+
+export function IconEmpty({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 48 48" fill="none" width="48" height="48">
+      <rect x="8" y="12" width="32" height="28" rx="4" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+      <path d="M16 22h16M16 28h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+      <circle cx="24" cy="8" r="4" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+    </svg>
+  );
+}
+
 export function IconLogo({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 28 28" width="28" height="28">

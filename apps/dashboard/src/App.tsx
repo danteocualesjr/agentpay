@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry } from './api';
+import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry } from './api';
 import {
   IconAgents,
+  IconEmpty,
   IconHome,
   IconLedger,
   IconLogo,
+  IconLogout,
   IconPlay,
   IconRefresh,
   IconSearch,
@@ -44,6 +46,42 @@ const PAGE_META: Record<Tab, { title: string; description: string }> = {
   },
 };
 
+const SIM_PRESETS = [
+  {
+    label: 'Auto-approve',
+    hint: '$4.99 · allowed merchant',
+    amount: '499',
+    merchant: 'api.search.io',
+    reason: 'Paid search API query batch',
+    variant: 'success' as const,
+  },
+  {
+    label: 'Needs approval',
+    hint: '$89 · over threshold',
+    amount: '8900',
+    merchant: 'datasets.io',
+    reason: 'Premium dataset download',
+    variant: 'warning' as const,
+  },
+  {
+    label: 'Blocked',
+    hint: '$200 · not on allowlist',
+    amount: '20000',
+    merchant: 'unknown.shop',
+    reason: 'Unauthorized merchant purchase',
+    variant: 'danger' as const,
+  },
+];
+
+const STATUS_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'approved', label: 'Approved' },
+  { id: 'captured', label: 'Captured' },
+  { id: 'blocked', label: 'Blocked' },
+  { id: 'denied', label: 'Denied' },
+];
+
 function formatMoney(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
@@ -57,6 +95,24 @@ function formatDate(iso: string) {
   }).format(new Date(iso));
 }
 
+function formatRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatDate(iso);
+}
+
+function budgetBarLevel(pct: number) {
+  if (pct >= 90) return 'critical';
+  if (pct >= 70) return 'warning';
+  return 'normal';
+}
+
 function StatusBadge({ status }: { status: string }) {
   return <span className={`badge badge-${status}`}>{status.replace('_', ' ')}</span>;
 }
@@ -68,20 +124,77 @@ function activityIcon(status: string) {
   return '✕';
 }
 
+function MetricsSkeleton() {
+  return (
+    <div className="metrics-row">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="metric-card skeleton-card">
+          <div className="skeleton skeleton-text" style={{ width: '60%' }} />
+          <div className="skeleton skeleton-value" />
+          <div className="skeleton skeleton-text" style={{ width: '45%' }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton({ rows = 4, cols = 5 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="table-card">
+      <table>
+        <thead>
+          <tr>
+            {Array.from({ length: cols }).map((_, i) => (
+              <th key={i}><div className="skeleton skeleton-text" style={{ width: '70%' }} /></th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, r) => (
+            <tr key={r}>
+              {Array.from({ length: cols }).map((_, c) => (
+                <td key={c}><div className="skeleton skeleton-text" style={{ width: c === 0 ? '80%' : '55%' }} /></td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="empty-state">
+      <IconEmpty className="empty-icon" />
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </div>
+  );
+}
+
 export default function App() {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKey, setApiKeyState] = useState(getApiKey());
   const [tab, setTab] = useState<Tab>('overview');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [agents, setAgents] = useState<Agent[]>([]);
   const [authorizations, setAuthorizations] = useState<Authorization[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [simAmount, setSimAmount] = useState('499');
   const [simMerchant, setSimMerchant] = useState('api.search.io');
   const [simReason, setSimReason] = useState('Paid search API query batch');
+  const [simulating, setSimulating] = useState(false);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3200);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!getApiKey()) return;
@@ -115,6 +228,14 @@ export default function App() {
     setApiKeyState(val);
   }
 
+  function signOut() {
+    clearApiKey();
+    setApiKeyState('');
+    setAgents([]);
+    setAuthorizations([]);
+    setLedger([]);
+  }
+
   if (!apiKey) {
     return (
       <div className="login-layout">
@@ -134,13 +255,15 @@ export default function App() {
           <div className="login-card">
             <h2>Sign in</h2>
             <p className="login-subtitle">Paste your test API key from <code>npm run seed</code></p>
-            <label className="field-label">API key</label>
+            <label className="field-label" htmlFor="api-key">API key</label>
             <input
+              id="api-key"
               className="field-input"
               placeholder="ap_test_..."
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && saveKey()}
+              autoFocus
             />
             <button className="btn btn-primary btn-full" onClick={saveKey}>
               Continue
@@ -159,13 +282,15 @@ export default function App() {
   const recentAuth = authorizations.slice(0, 6);
 
   const q = search.toLowerCase();
-  const filteredAuth = authorizations.filter(
-    (a) =>
+  const filteredAuth = authorizations.filter((a) => {
+    const matchesSearch =
       !q ||
       a.merchant.toLowerCase().includes(q) ||
       a.reason.toLowerCase().includes(q) ||
-      a.id.toLowerCase().includes(q),
-  );
+      a.id.toLowerCase().includes(q);
+    const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   async function handleAction(action: 'approve' | 'deny' | 'capture', id: string) {
     setError('');
@@ -173,6 +298,8 @@ export default function App() {
       if (action === 'approve') await api.approve(id);
       if (action === 'deny') await api.deny(id);
       if (action === 'capture') await api.capture(id);
+      const labels = { approve: 'Approved', deny: 'Denied', capture: 'Captured' };
+      showToast(`${labels[action]} successfully`);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Action failed');
@@ -182,34 +309,52 @@ export default function App() {
   async function simulateSpend() {
     if (!selectedAgent) return;
     setError('');
+    setSimulating(true);
     try {
-      await api.authorize(selectedAgent, {
+      const result = await api.authorize(selectedAgent, {
         amount_cents: Number(simAmount),
         merchant: simMerchant,
         reason: simReason,
       });
+      showToast(`Authorization ${result.status}`);
       await refresh();
       setTab('authorizations');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Authorization failed');
+    } finally {
+      setSimulating(false);
     }
   }
 
+  function applyPreset(preset: (typeof SIM_PRESETS)[number]) {
+    setSimAmount(preset.amount);
+    setSimMerchant(preset.merchant);
+    setSimReason(preset.reason);
+  }
+
   const page = PAGE_META[tab];
+  const initialLoad = loading && agents.length === 0;
 
   return (
     <div className="shell">
+      {toast && (
+        <div className={`toast toast-${toast.type}`} role="status">
+          {toast.message}
+        </div>
+      )}
+
       <aside className="sidebar">
         <div className="sidebar-brand">
           <IconLogo />
           AgentPay
         </div>
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Main navigation">
           {NAV.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               className={`sidebar-link ${tab === id ? 'active' : ''}`}
               onClick={() => setTab(id)}
+              aria-current={tab === id ? 'page' : undefined}
             >
               <Icon className="sidebar-icon" />
               <span className="sidebar-link-label">{label}</span>
@@ -221,8 +366,29 @@ export default function App() {
         </nav>
         <div className="sidebar-footer">
           <span className="dev-mode-badge">Test environment</span>
+          <button className="btn btn-ghost btn-sm sign-out-btn" onClick={signOut}>
+            <IconLogout />
+            Sign out
+          </button>
         </div>
       </aside>
+
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        {NAV.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            className={`mobile-nav-link ${tab === id ? 'active' : ''}`}
+            onClick={() => setTab(id)}
+            aria-current={tab === id ? 'page' : undefined}
+          >
+            <Icon className="mobile-nav-icon" />
+            <span>{label}</span>
+            {id === 'authorizations' && pending.length > 0 && (
+              <span className="mobile-nav-badge">{pending.length}</span>
+            )}
+          </button>
+        ))}
+      </nav>
 
       <div className="main">
         <header className="topbar">
@@ -234,18 +400,20 @@ export default function App() {
                 placeholder="Search merchants, reasons…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search"
               />
             </div>
           </div>
           <div className="topbar-actions">
             <button className="btn btn-ghost" onClick={refresh} disabled={loading}>
-              <IconRefresh />
+              <IconRefresh className={loading ? 'spin' : ''} />
               {loading ? 'Loading…' : 'Refresh'}
             </button>
             {tab !== 'simulate' && (
               <button className="btn btn-primary" onClick={() => setTab('simulate')}>
                 <IconPlay />
-                Simulate spend
+                <span className="btn-label-full">Simulate spend</span>
+                <span className="btn-label-short">Simulate</span>
               </button>
             )}
           </div>
@@ -257,34 +425,38 @@ export default function App() {
             <p className="page-description">{page.description}</p>
           </div>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          {error && <div className="alert alert-error" role="alert">{error}</div>}
 
           {tab === 'overview' && (
             <>
-              <div className="metrics-row">
-                <div className="metric-card">
-                  <span className="metric-label">Active agents</span>
-                  <span className="metric-value">{agents.filter((a) => a.status === 'active').length}</span>
-                  <span className="metric-delta">{agents.length} total configured</span>
+              {initialLoad ? (
+                <MetricsSkeleton />
+              ) : (
+                <div className="metrics-row">
+                  <div className="metric-card">
+                    <span className="metric-label">Active agents</span>
+                    <span className="metric-value">{agents.filter((a) => a.status === 'active').length}</span>
+                    <span className="metric-delta">{agents.length} total configured</span>
+                  </div>
+                  <div className={`metric-card${pending.length ? ' highlight' : ''}`}>
+                    <span className="metric-label">Pending approvals</span>
+                    <span className="metric-value">{pending.length}</span>
+                    <span className="metric-delta">
+                      {pending.length ? 'Needs your review' : 'All clear'}
+                    </span>
+                  </div>
+                  <div className="metric-card">
+                    <span className="metric-label">Captured spend</span>
+                    <span className="metric-value">{formatMoney(capturedTotal)}</span>
+                    <span className="metric-delta">Lifetime captured</span>
+                  </div>
+                  <div className="metric-card">
+                    <span className="metric-label">Blocked requests</span>
+                    <span className="metric-value">{blockedCount}</span>
+                    <span className="metric-delta">Policy enforcement</span>
+                  </div>
                 </div>
-                <div className={`metric-card${pending.length ? ' highlight' : ''}`}>
-                  <span className="metric-label">Pending approvals</span>
-                  <span className="metric-value">{pending.length}</span>
-                  <span className="metric-delta">
-                    {pending.length ? 'Needs your review' : 'All clear'}
-                  </span>
-                </div>
-                <div className="metric-card">
-                  <span className="metric-label">Captured spend</span>
-                  <span className="metric-value">{formatMoney(capturedTotal)}</span>
-                  <span className="metric-delta">Lifetime captured</span>
-                </div>
-                <div className="metric-card">
-                  <span className="metric-label">Blocked requests</span>
-                  <span className="metric-value">{blockedCount}</span>
-                  <span className="metric-delta">Policy enforcement</span>
-                </div>
-              </div>
+              )}
 
               <div className="split-panels">
                 <div className="panel">
@@ -295,11 +467,23 @@ export default function App() {
                     </button>
                   </div>
                   <div className="panel-body">
-                    {recentAuth.length === 0 ? (
-                      <div className="empty-state">
-                        <h3>No activity yet</h3>
-                        <p>Simulate a spend request to see authorizations here.</p>
+                    {initialLoad ? (
+                      <div className="panel-skeleton">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="activity-item">
+                            <div className="skeleton skeleton-avatar" />
+                            <div style={{ flex: 1 }}>
+                              <div className="skeleton skeleton-text" style={{ width: '50%', marginBottom: 6 }} />
+                              <div className="skeleton skeleton-text" style={{ width: '70%' }} />
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                    ) : recentAuth.length === 0 ? (
+                      <EmptyState
+                        title="No activity yet"
+                        description="Simulate a spend request to see authorizations here."
+                      />
                     ) : (
                       <ul className="activity-list">
                         {recentAuth.map((a) => (
@@ -307,7 +491,7 @@ export default function App() {
                             <div className={`activity-icon ${a.status}`}>{activityIcon(a.status)}</div>
                             <div className="activity-content">
                               <div className="activity-title">{a.merchant}</div>
-                              <div className="activity-meta">{a.reason} · {formatDate(a.created_at)}</div>
+                              <div className="activity-meta">{a.reason} · {formatRelative(a.created_at)}</div>
                             </div>
                             <div className="activity-amount">{formatMoney(a.amount_cents)}</div>
                           </li>
@@ -328,6 +512,7 @@ export default function App() {
                         .filter((x) => x.agent_id === a.id && x.status === 'captured')
                         .reduce((s, x) => s + x.amount_cents, 0);
                       const pct = Math.min(100, (spent / a.daily_budget_cents) * 100);
+                      const level = budgetBarLevel(pct);
                       return (
                         <div key={a.id} className="agent-summary-item">
                           <div className="agent-summary-name">{a.name}</div>
@@ -340,10 +525,15 @@ export default function App() {
                               Daily limit
                               <strong>{formatMoney(a.daily_budget_cents)}</strong>
                             </div>
+                            <div>
+                              Remaining
+                              <strong>{formatMoney(Math.max(0, a.daily_budget_cents - spent))}</strong>
+                            </div>
                           </div>
                           <div className="budget-bar">
-                            <div className="budget-bar-fill" style={{ width: `${pct}%` }} />
+                            <div className={`budget-bar-fill ${level}`} style={{ width: `${pct}%` }} />
                           </div>
+                          <div className="budget-pct">{pct.toFixed(0)}% used</div>
                         </div>
                       );
                     })}
@@ -354,90 +544,124 @@ export default function App() {
           )}
 
           {tab === 'agents' && (
-            <div className="table-card">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Agent</th>
-                    <th>Daily budget</th>
-                    <th>Approval threshold</th>
-                    <th>Allowlist</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {agents.map((a) => (
-                    <tr key={a.id}>
-                      <td>
-                        <strong>{a.name}</strong>
-                        <div className="resource-id">{a.id}</div>
-                      </td>
-                      <td>{formatMoney(a.daily_budget_cents)}</td>
-                      <td>{formatMoney(a.approval_threshold_cents)}</td>
-                      <td>{a.merchant_allowlist.join(', ') || 'Any merchant'}</td>
-                      <td><StatusBadge status={a.status} /></td>
+            initialLoad ? (
+              <TableSkeleton cols={5} />
+            ) : (
+              <div className="table-card">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Agent</th>
+                      <th>Daily budget</th>
+                      <th>Approval threshold</th>
+                      <th>Allowlist</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {agents.map((a) => (
+                      <tr key={a.id}>
+                        <td>
+                          <strong>{a.name}</strong>
+                          <div className="resource-id">{a.id}</div>
+                        </td>
+                        <td>{formatMoney(a.daily_budget_cents)}</td>
+                        <td>{formatMoney(a.approval_threshold_cents)}</td>
+                        <td>
+                          <div className="allowlist-tags">
+                            {a.merchant_allowlist.length
+                              ? a.merchant_allowlist.map((m) => <span key={m} className="tag">{m}</span>)
+                              : <span className="muted">Any merchant</span>}
+                          </div>
+                        </td>
+                        <td><StatusBadge status={a.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
 
           {tab === 'authorizations' && (
-            <div className="table-card">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Amount</th>
-                    <th>Merchant</th>
-                    <th>Reason</th>
-                    <th>Policy</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAuth.length === 0 ? (
-                    <tr>
-                      <td colSpan={6}>
-                        <div className="empty-state">
-                          <h3>No matching authorizations</h3>
-                          <p>Try a different search or simulate a new spend request.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredAuth.map((a) => (
-                      <tr key={a.id}>
-                        <td><strong>{formatMoney(a.amount_cents)}</strong></td>
-                        <td>{a.merchant}</td>
-                        <td>{a.reason}</td>
-                        <td><span className="muted">{a.policy_message}</span></td>
-                        <td><StatusBadge status={a.status} /></td>
-                        <td className="actions">
-                          {a.status === 'pending' && (
-                            <>
-                              <button className="btn btn-sm btn-primary" onClick={() => handleAction('approve', a.id)}>Approve</button>
-                              <button className="btn btn-sm btn-ghost" onClick={() => handleAction('deny', a.id)}>Deny</button>
-                            </>
-                          )}
-                          {a.status === 'approved' && (
-                            <button className="btn btn-sm btn-primary" onClick={() => handleAction('capture', a.id)}>Capture</button>
-                          )}
-                        </td>
+            <>
+              <div className="filter-bar">
+                {STATUS_FILTERS.map((f) => {
+                  const count = f.id === 'all'
+                    ? authorizations.length
+                    : authorizations.filter((a) => a.status === f.id).length;
+                  return (
+                    <button
+                      key={f.id}
+                      className={`filter-chip ${statusFilter === f.id ? 'active' : ''}`}
+                      onClick={() => setStatusFilter(f.id)}
+                    >
+                      {f.label}
+                      <span className="filter-count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {initialLoad ? (
+                <TableSkeleton cols={6} />
+              ) : (
+                <div className="table-card">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Amount</th>
+                        <th>Merchant</th>
+                        <th>Reason</th>
+                        <th>Policy</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {filteredAuth.length === 0 ? (
+                        <tr>
+                          <td colSpan={6}>
+                            <EmptyState
+                              title="No matching authorizations"
+                              description="Try a different search or simulate a new spend request."
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredAuth.map((a) => (
+                          <tr key={a.id}>
+                            <td><strong>{formatMoney(a.amount_cents)}</strong></td>
+                            <td>{a.merchant}</td>
+                            <td>{a.reason}</td>
+                            <td><span className="muted">{a.policy_message}</span></td>
+                            <td><StatusBadge status={a.status} /></td>
+                            <td className="actions">
+                              {a.status === 'pending' && (
+                                <>
+                                  <button className="btn btn-sm btn-primary" onClick={() => handleAction('approve', a.id)}>Approve</button>
+                                  <button className="btn btn-sm btn-ghost" onClick={() => handleAction('deny', a.id)}>Deny</button>
+                                </>
+                              )}
+                              {a.status === 'approved' && (
+                                <button className="btn btn-sm btn-primary" onClick={() => handleAction('capture', a.id)}>Capture</button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
 
           {tab === 'ledger' && (
             <>
               <div className="toolbar" style={{ marginBottom: 20 }}>
-                <label className="field-label">Filter by agent</label>
+                <label className="field-label" htmlFor="ledger-agent">Filter by agent</label>
                 <select
+                  id="ledger-agent"
                   className="field-input field-select"
                   style={{ marginBottom: 0 }}
                   value={selectedAgent}
@@ -453,65 +677,106 @@ export default function App() {
                   ))}
                 </select>
               </div>
-              <div className="table-card">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Timestamp</th>
-                      <th>Event</th>
-                      <th>Amount</th>
-                      <th>Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledger.length === 0 ? (
+              {initialLoad ? (
+                <TableSkeleton cols={4} />
+              ) : (
+                <div className="table-card">
+                  <table>
+                    <thead>
                       <tr>
-                        <td colSpan={4}>
-                          <div className="empty-state">
-                            <h3>No ledger entries</h3>
-                            <p>Events appear here as agents request and capture spend.</p>
-                          </div>
-                        </td>
+                        <th>Timestamp</th>
+                        <th>Event</th>
+                        <th>Amount</th>
+                        <th>Description</th>
                       </tr>
-                    ) : (
-                      ledger.map((e) => (
-                        <tr key={e.id}>
-                          <td>{formatDate(e.created_at)}</td>
-                          <td><code>{e.type}</code></td>
-                          <td>{formatMoney(e.amount_cents)}</td>
-                          <td>{e.description}</td>
+                    </thead>
+                    <tbody>
+                      {ledger.length === 0 ? (
+                        <tr>
+                          <td colSpan={4}>
+                            <EmptyState
+                              title="No ledger entries"
+                              description="Events appear here as agents request and capture spend."
+                            />
+                          </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ) : (
+                        ledger.map((e) => (
+                          <tr key={e.id}>
+                            <td>
+                              <span title={formatDate(e.created_at)}>{formatRelative(e.created_at)}</span>
+                            </td>
+                            <td><code className="event-code">{e.type}</code></td>
+                            <td>{formatMoney(e.amount_cents)}</td>
+                            <td>{e.description}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
 
           {tab === 'simulate' && (
-            <div className="form-card">
-              <h3>Simulate agent spend request</h3>
-              <p className="form-hint">
-                Try <strong>$4.99</strong> at <code>api.search.io</code> (auto-approve),
-                <strong> $89</strong> at <code>datasets.io</code> (pending),
-                or <strong>$200</strong> at <code>unknown.shop</code> (blocked).
-              </p>
-              <label className="field-label">Agent</label>
-              <select className="field-input" value={selectedAgent} onChange={(e) => setSelectedAgent(e.target.value)}>
-                {agents.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
-              <label className="field-label">Amount (cents)</label>
-              <input className="field-input" value={simAmount} onChange={(e) => setSimAmount(e.target.value)} />
-              <label className="field-label">Merchant</label>
-              <input className="field-input" value={simMerchant} onChange={(e) => setSimMerchant(e.target.value)} />
-              <label className="field-label">Reason</label>
-              <input className="field-input" value={simReason} onChange={(e) => setSimReason(e.target.value)} />
-              <button className="btn btn-primary btn-full" onClick={simulateSpend}>
-                Request authorization
-              </button>
+            <div className="simulate-layout">
+              <div className="preset-cards">
+                <p className="preset-label">Quick scenarios</p>
+                <div className="preset-grid">
+                  {SIM_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      className={`preset-card preset-${preset.variant}`}
+                      onClick={() => applyPreset(preset)}
+                    >
+                      <span className="preset-title">{preset.label}</span>
+                      <span className="preset-hint">{preset.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-card">
+                <h3>Simulate agent spend request</h3>
+                <p className="form-hint">
+                  Pick a scenario above or customize the fields below, then submit to test the policy engine.
+                </p>
+                <label className="field-label" htmlFor="sim-agent">Agent</label>
+                <select
+                  id="sim-agent"
+                  className="field-input"
+                  value={selectedAgent}
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                >
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                <label className="field-label" htmlFor="sim-amount">Amount (cents)</label>
+                <input
+                  id="sim-amount"
+                  className="field-input"
+                  value={simAmount}
+                  onChange={(e) => setSimAmount(e.target.value)}
+                />
+                <label className="field-label" htmlFor="sim-merchant">Merchant</label>
+                <input
+                  id="sim-merchant"
+                  className="field-input"
+                  value={simMerchant}
+                  onChange={(e) => setSimMerchant(e.target.value)}
+                />
+                <label className="field-label" htmlFor="sim-reason">Reason</label>
+                <input
+                  id="sim-reason"
+                  className="field-input"
+                  value={simReason}
+                  onChange={(e) => setSimReason(e.target.value)}
+                />
+                <button className="btn btn-primary btn-full" onClick={simulateSpend} disabled={simulating}>
+                  {simulating ? 'Submitting…' : 'Request authorization'}
+                </button>
+              </div>
             </div>
           )}
         </div>
