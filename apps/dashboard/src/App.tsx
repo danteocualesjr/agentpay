@@ -23,13 +23,15 @@ import {
 
 type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate';
 
-const NAV: { id: Tab; label: string; icon: typeof IconHome }[] = [
-  { id: 'overview', label: 'Home', icon: IconHome },
-  { id: 'agents', label: 'Agents', icon: IconAgents },
-  { id: 'authorizations', label: 'Approvals', icon: IconShield },
-  { id: 'ledger', label: 'Audit log', icon: IconLedger },
-  { id: 'simulate', label: 'Simulate', icon: IconPlay },
+const NAV: { id: Tab; label: string; icon: typeof IconHome; shortcut: string }[] = [
+  { id: 'overview', label: 'Home', icon: IconHome, shortcut: '1' },
+  { id: 'agents', label: 'Agents', icon: IconAgents, shortcut: '2' },
+  { id: 'authorizations', label: 'Approvals', icon: IconShield, shortcut: '3' },
+  { id: 'ledger', label: 'Audit log', icon: IconLedger, shortcut: '4' },
+  { id: 'simulate', label: 'Simulate', icon: IconPlay, shortcut: '5' },
 ];
+
+const TAB_BY_SHORTCUT = Object.fromEntries(NAV.map((n) => [n.shortcut, n.id])) as Record<string, Tab>;
 
 const PAGE_META: Record<Tab, { title: string; description: string }> = {
   overview: {
@@ -121,6 +123,30 @@ function budgetBarLevel(pct: number) {
   return 'normal';
 }
 
+const AVATAR_COLORS = [
+  'avatar-sky', 'avatar-indigo', 'avatar-violet', 'avatar-emerald', 'avatar-amber', 'avatar-rose',
+];
+
+function agentInitials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function avatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function AgentAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
+  return (
+    <span className={`agent-avatar ${avatarColor(name)} agent-avatar-${size}`} aria-hidden="true">
+      {agentInitials(name)}
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   return <span className={`badge badge-${status}`}>{status.replace('_', ' ')}</span>;
 }
@@ -130,6 +156,53 @@ function activityIcon(status: string) {
   if (status === 'pending') return '…';
   if (status === 'captured') return '$';
   return '✕';
+}
+
+function ledgerEventVariant(type: string) {
+  if (type.includes('approved') || type.includes('captured')) return 'success';
+  if (type.includes('requested')) return 'info';
+  if (type.includes('blocked') || type.includes('denied')) return 'danger';
+  return 'neutral';
+}
+
+function formatEventType(type: string) {
+  return type.replace(/_/g, ' ');
+}
+
+function policyDecisionVariant(decision: string) {
+  if (decision === 'auto_approved') return 'success';
+  if (decision === 'requires_approval') return 'warning';
+  if (decision === 'blocked') return 'danger';
+  return 'neutral';
+}
+
+function formatPolicyDecision(decision: string) {
+  return decision.replace(/_/g, ' ');
+}
+
+function ledgerDateLabel(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'Today';
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(d);
+}
+
+function groupLedgerByDate(entries: LedgerEntry[]) {
+  const groups: { label: string; entries: LedgerEntry[] }[] = [];
+  let currentLabel = '';
+  for (const entry of entries) {
+    const label = ledgerDateLabel(entry.created_at);
+    if (label !== currentLabel) {
+      groups.push({ label, entries: [entry] });
+      currentLabel = label;
+    } else {
+      groups[groups.length - 1].entries.push(entry);
+    }
+  }
+  return groups;
 }
 
 function MetricsSkeleton() {
@@ -425,6 +498,19 @@ export default function App() {
     setActivePreset(preset.label);
   }
 
+  const denyTarget = confirmDenyId
+    ? authorizations.find((a) => a.id === confirmDenyId)
+    : null;
+
+  const captureTarget = confirmCaptureId
+    ? authorizations.find((a) => a.id === confirmCaptureId)
+    : null;
+
+  const ledgerGroups = groupLedgerByDate(ledger);
+
+  const agentMap = Object.fromEntries(agents.map((a) => [a.id, a]));
+  const agentName = (id: string) => agentMap[id]?.name ?? id.slice(0, 8);
+
   const page = PAGE_META[tab];
   const initialLoad = loading && agents.length === 0;
   const showError = error && error !== dismissedError;
@@ -454,7 +540,7 @@ export default function App() {
           AgentPay
         </div>
         <nav className="sidebar-nav" aria-label="Main navigation">
-          {NAV.map(({ id, label, icon: Icon }) => (
+          {NAV.map(({ id, label, icon: Icon, shortcut }) => (
             <button
               key={id}
               className={`sidebar-link ${tab === id ? 'active' : ''}`}
@@ -463,6 +549,7 @@ export default function App() {
             >
               <Icon className="sidebar-icon" />
               <span className="sidebar-link-label">{label}</span>
+              <kbd className="nav-shortcut" aria-hidden="true">{shortcut}</kbd>
               {id === 'authorizations' && pending.length > 0 && (
                 <span className="nav-badge">{pending.length}</span>
               )}
@@ -528,6 +615,15 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-actions">
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon shortcuts-btn"
+              onClick={() => setShowShortcuts(true)}
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              <IconHelp />
+            </button>
             <button className="btn btn-ghost" onClick={refresh} disabled={loading}>
               <IconRefresh className={loading ? 'spin' : ''} />
               {loading ? 'Loading…' : 'Refresh'}
@@ -619,7 +715,7 @@ export default function App() {
                     </div>
                     <span className="metric-value">{blockedCount}</span>
                     <span className="metric-delta">Policy enforcement</span>
-                  </div>
+                  </button>
                 </div>
               )}
 
@@ -690,8 +786,17 @@ export default function App() {
                       const pct = Math.min(100, (spent / a.daily_budget_cents) * 100);
                       const level = budgetBarLevel(pct);
                       return (
-                        <div key={a.id} className="agent-summary-item">
-                          <div className="agent-summary-name">{a.name}</div>
+                        <button
+                          key={a.id}
+                          type="button"
+                          className="agent-summary-item agent-summary-clickable"
+                          onClick={() => goToLedgerForAgent(a.id)}
+                          title={`View ${a.name} audit log`}
+                        >
+                          <div className="agent-summary-name">
+                            <AgentAvatar name={a.name} size="sm" />
+                            {a.name}
+                          </div>
                           <div className="agent-summary-stats">
                             <div>
                               Spent today
@@ -709,8 +814,8 @@ export default function App() {
                           <div className="budget-bar">
                             <div className={`budget-bar-fill ${level}`} style={{ width: `${pct}%` }} />
                           </div>
-                          <div className="budget-pct">{pct.toFixed(0)}% used</div>
-                        </div>
+                          <div className="budget-pct">{pct.toFixed(0)}% used · View ledger</div>
+                        </button>
                       );
                     })}
                   </div>
@@ -802,15 +907,17 @@ export default function App() {
                 </div>
               )}
               {initialLoad ? (
-                <TableSkeleton cols={6} />
+                <TableSkeleton cols={8} />
               ) : (
                 <div className="table-card table-card-sticky">
                   <table>
                     <thead>
                       <tr>
                         <th>Amount</th>
+                        <th>Agent</th>
                         <th>Merchant</th>
                         <th>Reason</th>
+                        <th>Created</th>
                         <th>Policy</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -819,7 +926,7 @@ export default function App() {
                     <tbody>
                       {filteredAuth.length === 0 ? (
                         <tr>
-                          <td colSpan={6}>
+                          <td colSpan={8}>
                             <EmptyState
                               title="No matching authorizations"
                               description="Try a different search or simulate a new spend request."
@@ -835,9 +942,27 @@ export default function App() {
                         filteredAuth.map((a) => (
                           <tr key={a.id}>
                             <td><strong>{formatMoney(a.amount_cents)}</strong></td>
+                            <td>
+                              <div className="agent-cell agent-cell-compact">
+                                <AgentAvatar name={agentName(a.agent_id)} size="sm" />
+                                <span>{agentName(a.agent_id)}</span>
+                              </div>
+                            </td>
                             <td>{a.merchant}</td>
-                            <td>{a.reason}</td>
-                            <td><span className="muted">{a.policy_message}</span></td>
+                            <td className="cell-truncate" title={a.reason}>{a.reason}</td>
+                            <td>
+                              <span className="muted" title={formatDate(a.created_at)}>
+                                {formatRelative(a.created_at)}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="muted cell-truncate" title={a.policy_message ?? undefined}>
+                                {a.policy_message}
+                              </span>
+                              <span className={`policy-chip policy-chip-${policyDecisionVariant(a.policy_decision)}`}>
+                                {formatPolicyDecision(a.policy_decision)}
+                              </span>
+                            </td>
                             <td><StatusBadge status={a.status} /></td>
                             <td className="actions">
                               {a.status === 'pending' && (
@@ -912,8 +1037,8 @@ export default function App() {
                         <th>Description</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {ledger.length === 0 ? (
+                    {ledger.length === 0 ? (
+                      <tbody>
                         <tr>
                           <td colSpan={4}>
                             <EmptyState
@@ -923,19 +1048,33 @@ export default function App() {
                             />
                           </td>
                         </tr>
-                      ) : (
-                        ledger.map((e) => (
-                          <tr key={e.id}>
-                            <td>
-                              <span title={formatDate(e.created_at)}>{formatRelative(e.created_at)}</span>
+                      </tbody>
+                    ) : (
+                      ledgerGroups.map((group) => (
+                        <tbody key={group.label} className="ledger-group">
+                          <tr className="ledger-date-row">
+                            <td colSpan={4}>
+                              <span className="ledger-date-label">{group.label}</span>
+                              <span className="ledger-date-count">{group.entries.length} event{group.entries.length !== 1 ? 's' : ''}</span>
                             </td>
-                            <td><code className="event-code">{e.type}</code></td>
-                            <td>{formatMoney(e.amount_cents)}</td>
-                            <td>{e.description}</td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
+                          {group.entries.map((e) => (
+                            <tr key={e.id}>
+                              <td>
+                                <span title={formatDate(e.created_at)}>{formatRelative(e.created_at)}</span>
+                              </td>
+                              <td>
+                                <span className={`event-badge event-badge-${ledgerEventVariant(e.type)}`}>
+                                  {formatEventType(e.type)}
+                                </span>
+                              </td>
+                              <td>{formatMoney(e.amount_cents)}</td>
+                              <td>{e.description}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      ))
+                    )}
                   </table>
                 </div>
               )}
