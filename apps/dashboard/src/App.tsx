@@ -148,6 +148,33 @@ function AgentAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }
   );
 }
 
+function SidebarStats({
+  pending,
+  capturedTotal,
+  blockedCount,
+}: {
+  pending: number;
+  capturedTotal: number;
+  blockedCount: number;
+}) {
+  return (
+    <div className="sidebar-stats" aria-label="Quick stats">
+      <div className={`sidebar-stat${pending ? ' sidebar-stat-alert' : ''}`}>
+        <span className="sidebar-stat-value">{pending}</span>
+        <span className="sidebar-stat-label">Pending</span>
+      </div>
+      <div className="sidebar-stat">
+        <span className="sidebar-stat-value">{formatMoney(capturedTotal)}</span>
+        <span className="sidebar-stat-label">Captured</span>
+      </div>
+      <div className="sidebar-stat">
+        <span className="sidebar-stat-value">{blockedCount}</span>
+        <span className="sidebar-stat-label">Blocked</span>
+      </div>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   return <span className={`badge badge-${status}`}>{status.replace('_', ' ')}</span>;
 }
@@ -718,6 +745,11 @@ export default function App() {
           <IconLogo />
           AgentPay
         </div>
+        <SidebarStats
+          pending={pending.length}
+          capturedTotal={capturedTotal}
+          blockedCount={blockedCount}
+        />
         <nav className="sidebar-nav" aria-label="Main navigation">
           {NAV.map(({ id, label, icon: Icon, shortcut }) => (
             <button
