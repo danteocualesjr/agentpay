@@ -146,6 +146,14 @@ export function IconHelp({ className }: IconProps) {
   );
 }
 
+export function IconDownload({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M8 1.75a.75.75 0 01.75.75v5.19l1.72-1.72a.75.75 0 111.06 1.06l-3 3a.75.75 0 01-1.06 0l-3-3a.75.75 0 111.06-1.06l1.72 1.72V2.5A.75.75 0 018 1.75zM3.5 11a.75.75 0 00-.75.75v1c0 .69.56 1.25 1.25 1.25h8.5c.69 0 1.25-.56 1.25-1.25v-1a.75.75 0 011.5 0v1A2.75 2.75 0 0112.5 14.5h-8.5A2.75 2.75 0 011.25 11.75v-1A.75.75 0 013.5 11z" />
+    </svg>
+  );
+}
+
 export function IconLogo({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 28 28" width="28" height="28">

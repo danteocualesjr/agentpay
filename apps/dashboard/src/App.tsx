@@ -4,6 +4,7 @@ import {
   IconAgents,
   IconClose,
   IconCopy,
+  IconDownload,
   IconEmpty,
   IconEye,
   IconEyeOff,
@@ -231,6 +232,23 @@ function groupLedgerByDate(entries: LedgerEntry[]) {
     }
   }
   return groups;
+}
+
+function exportLedgerCsv(entries: LedgerEntry[], agentName: string) {
+  const header = 'Timestamp,Event,Amount (USD),Description';
+  const rows = entries.map((e) => {
+    const ts = new Date(e.created_at).toISOString();
+    const amount = (e.amount_cents / 100).toFixed(2);
+    const desc = `"${e.description.replace(/"/g, '""')}"`;
+    return `${ts},${e.type},${amount},${desc}`;
+  });
+  const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `agentpay-ledger-${agentName.toLowerCase().replace(/\s+/g, '-')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function MetricsSkeleton() {
@@ -1281,24 +1299,40 @@ export default function App() {
 
           {tab === 'ledger' && (
             <>
-              <div className="toolbar" style={{ marginBottom: 20 }}>
-                <label className="field-label" htmlFor="ledger-agent">Filter by agent</label>
-                <select
-                  id="ledger-agent"
-                  className="field-input field-select"
-                  style={{ marginBottom: 0 }}
-                  value={selectedAgent}
-                  onChange={async (e) => {
-                    const id = e.target.value;
-                    setSelectedAgent(id);
-                    const led = await api.ledger(id);
-                    setLedger(led.data);
-                  }}
-                >
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
+              <div className="ledger-toolbar">
+                <div className="ledger-toolbar-left">
+                  <label className="field-label" htmlFor="ledger-agent">Agent</label>
+                  <select
+                    id="ledger-agent"
+                    className="field-input field-select ledger-agent-select"
+                    value={selectedAgent}
+                    onChange={async (e) => {
+                      const id = e.target.value;
+                      setSelectedAgent(id);
+                      const led = await api.ledger(id);
+                      setLedger(led.data);
+                    }}
+                  >
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                  {!initialLoad && ledger.length > 0 && (
+                    <span className="ledger-entry-count">
+                      {ledger.length} event{ledger.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                {!initialLoad && ledger.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => exportLedgerCsv(ledger, agentName(selectedAgent))}
+                  >
+                    <IconDownload />
+                    Export CSV
+                  </button>
+                )}
               </div>
               {initialLoad ? (
                 <TableSkeleton cols={4} />
