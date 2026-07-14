@@ -176,6 +176,39 @@ function SidebarStats({
   );
 }
 
+function HealthBanner({
+  pending,
+  blockedCount,
+  onReview,
+}: {
+  pending: number;
+  blockedCount: number;
+  onReview: () => void;
+}) {
+  const needsAttention = pending > 0;
+  return (
+    <div
+      className={`health-banner ${needsAttention ? 'health-banner-warn' : 'health-banner-ok'}`}
+      role="status"
+    >
+      <span className="health-dot" aria-hidden="true" />
+      <div className="health-banner-text">
+        <strong>{needsAttention ? 'Action required' : 'All systems operational'}</strong>
+        <span>
+          {needsAttention
+            ? `${pending} approval${pending !== 1 ? 's' : ''} waiting for your review`
+            : `No pending approvals · ${blockedCount} blocked by policy today`}
+        </span>
+      </div>
+      {needsAttention && (
+        <button type="button" className="btn btn-sm btn-primary health-banner-action" onClick={onReview}>
+          Review
+        </button>
+      )}
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   return <span className={`badge badge-${status}`}>{status.replace('_', ' ')}</span>;
 }
@@ -939,10 +972,21 @@ export default function App() {
           <div key={tab} className="page-content">
           {tab === 'overview' && (
             <>
+              {!initialLoad && (
+                <HealthBanner
+                  pending={pending.length}
+                  blockedCount={blockedCount}
+                  onReview={() => {
+                    setTab('authorizations');
+                    setStatusFilter('pending');
+                  }}
+                />
+              )}
+
               {initialLoad ? (
                 <MetricsSkeleton />
               ) : (
-                <div className="metrics-row">
+                <div className="metrics-row metrics-row-animated">
                   <button
                     type="button"
                     className="metric-card metric-card-clickable"
@@ -1038,7 +1082,7 @@ export default function App() {
                           <li key={a.id}>
                             <button
                               type="button"
-                              className="activity-item activity-item-clickable"
+                              className={`activity-item activity-item-clickable activity-status-${a.status}`}
                               onClick={() => {
                                 setTab('authorizations');
                                 setStatusFilter(a.status);

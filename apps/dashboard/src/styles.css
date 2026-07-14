@@ -470,6 +470,66 @@ body {
   font-size: 0.9375rem;
 }
 
+.health-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.health-banner-ok {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border-color: #bbf7d0;
+}
+
+.health-banner-warn {
+  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+  border-color: #fde68a;
+}
+
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-banner-ok .health-dot {
+  background: var(--success-text);
+  box-shadow: 0 0 0 3px rgba(9, 130, 93, 0.15);
+}
+
+.health-banner-warn .health-dot {
+  background: var(--warning-text);
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+  animation: pulse-dot 2s ease infinite;
+}
+
+.health-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.health-banner-text strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.health-banner-text span {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.health-banner-action {
+  flex-shrink: 0;
+}
+
 /* Buttons */
 
 .btn {
@@ -599,6 +659,26 @@ body {
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 28px;
+}
+
+.metrics-row-animated .metric-card {
+  animation: metric-in 0.35s ease backwards;
+}
+
+.metrics-row-animated .metric-card:nth-child(1) { animation-delay: 0ms; }
+.metrics-row-animated .metric-card:nth-child(2) { animation-delay: 60ms; }
+.metrics-row-animated .metric-card:nth-child(3) { animation-delay: 120ms; }
+.metrics-row-animated .metric-card:nth-child(4) { animation-delay: 180ms; }
+
+@keyframes metric-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .metric-card {
@@ -754,6 +834,12 @@ body {
 .activity-item-clickable:hover {
   background: #fafbfc;
 }
+
+.activity-status-pending { border-left: 3px solid var(--warning-text); }
+.activity-status-approved { border-left: 3px solid var(--success-text); }
+.activity-status-captured { border-left: 3px solid var(--accent); }
+.activity-status-blocked,
+.activity-status-denied { border-left: 3px solid var(--danger-text); }
 
 .activity-item-clickable:focus-visible {
   outline: 2px solid var(--accent);
