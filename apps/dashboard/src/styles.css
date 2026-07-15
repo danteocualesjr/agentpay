@@ -433,8 +433,23 @@ body {
   background: var(--border);
 }
 
+.search-box:focus-within {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.search-box:focus-within .search-icon {
+  color: var(--accent-hover);
+}
+
 .search-box.has-value {
   border-color: #bae6fd;
+  background: #f8fcff;
+}
+
+.search-box.has-value:focus-within {
+  border-color: var(--accent);
   background: #f8fcff;
 }
 
