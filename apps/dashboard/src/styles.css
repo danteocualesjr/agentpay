@@ -345,7 +345,9 @@ body {
 
 .topbar {
   height: var(--topbar-height);
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
