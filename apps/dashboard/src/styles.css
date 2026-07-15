@@ -1607,6 +1607,16 @@ tbody tr:last-child td { border-bottom: none; }
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
+.preset-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+.preset-card.selected:focus-visible {
+  outline-offset: 3px;
+}
+
 .preset-success { border-left: 3px solid var(--success-text); }
 .preset-warning { border-left: 3px solid var(--warning-text); }
 .preset-danger { border-left: 3px solid var(--danger-text); }
