@@ -334,7 +334,9 @@ function EmptyState({
 }) {
   return (
     <div className="empty-state">
-      <IconEmpty className="empty-icon" />
+      <span className="empty-icon-wrap" aria-hidden="true">
+        <IconEmpty className="empty-icon" />
+      </span>
       <h3>{title}</h3>
       <p>{description}</p>
       {action && (

@@ -1283,9 +1283,20 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--muted);
 }
 
+.empty-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+}
+
 .empty-icon {
   display: block;
-  margin: 0 auto 16px;
   color: var(--muted);
 }
 
