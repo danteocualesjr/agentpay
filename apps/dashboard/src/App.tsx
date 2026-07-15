@@ -1218,7 +1218,7 @@ export default function App() {
                   return (
                     <button
                       key={f.id}
-                      className={`filter-chip ${statusFilter === f.id ? 'active' : ''}`}
+                      className={`filter-chip ${statusFilter === f.id ? 'active' : ''}${f.id === 'pending' && count > 0 ? ' filter-chip-alert' : ''}`}
                       onClick={() => setStatusFilter(f.id)}
                     >
                       {f.label}

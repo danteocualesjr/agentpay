@@ -1465,6 +1465,23 @@ tbody tr:last-child td { border-bottom: none; }
   background: rgba(14, 165, 233, 0.15);
 }
 
+.filter-chip-alert {
+  border-color: #fcd34d;
+  color: var(--warning-text);
+}
+
+.filter-chip-alert .filter-count {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  animation: pulse-dot 2s ease infinite;
+}
+
+.filter-chip-alert.active {
+  background: var(--warning-bg);
+  border-color: #fbbf24;
+  color: var(--warning-text);
+}
+
 /* Tags */
 
 .allowlist-tags {
