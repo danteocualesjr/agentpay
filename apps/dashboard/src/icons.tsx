@@ -157,15 +157,15 @@ export function IconDownload({ className }: IconProps) {
 export function IconLogo({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 28 28" width="28" height="28">
-      <rect width="28" height="28" rx="7" fill="url(#ap-gradient)" />
+      <rect width="28" height="28" rx="4" fill="url(#ap-gradient)" />
       <path
-        d="M14 6l-6 2.5v3.8c0 2.8 2.2 5.1 6 6.2 3.8-1.1 6-3.4 6-6.2V8.5L14 6zm0 2.2l3.5 1.4v2.9c0 1.6-1.2 3-3.5 3.8-2.3-.8-3.5-2.2-3.5-3.8V9.6L14 8.2zM11 13.5l1.8 1.8L17 11l1 1-4.2 4.2-2.8-2.8 1-1z"
+        d="M8 9h12v1.5H8V9zm0 4h12v1.5H8V13zm0 4h8v1.5H8V17z"
         fill="white"
       />
       <defs>
         <linearGradient id="ap-gradient" x1="0" y1="0" x2="28" y2="28">
-          <stop stopColor="#0ea5e9" />
-          <stop offset="1" stopColor="#6366f1" />
+          <stop stopColor="#0066ff" />
+          <stop offset="1" stopColor="#003fa4" />
         </linearGradient>
       </defs>
     </svg>

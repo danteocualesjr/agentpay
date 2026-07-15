@@ -37,8 +37,8 @@ const TAB_BY_SHORTCUT = Object.fromEntries(NAV.map((n) => [n.shortcut, n.id])) a
 
 const PAGE_META: Record<Tab, { title: string; description: string }> = {
   overview: {
-    title: 'Home',
-    description: 'Monitor agent spending, pending approvals, and policy activity at a glance.',
+    title: 'Operations Dashboard',
+    description: 'Real-time monitoring of autonomous spending agents, treasury flow, and risk validation vectors.',
   },
   agents: {
     title: 'Agents',
@@ -404,6 +404,7 @@ export default function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
@@ -437,6 +438,20 @@ export default function App() {
   useEffect(() => {
     if (apiKey) refresh();
   }, [apiKey, refresh]);
+
+  useEffect(() => {
+    function tick() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const ms = String(now.getMilliseconds()).padStart(3, '0');
+      setClock(`${h}:${m}:${s}:${ms}`);
+    }
+    tick();
+    const id = setInterval(tick, 50);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!autoRefresh || !apiKey) return;
@@ -518,6 +533,7 @@ export default function App() {
           <div className="login-brand">
             <IconLogo />
             <h1>AgentPay</h1>
+            <p className="login-brand-tag">AI Spending Management</p>
             <p>Spending controls for AI agents — budgets, policies, approvals, and a full audit ledger.</p>
             <div className="login-features">
               <div className="login-feature"><span className="login-feature-dot" />Daily budget caps per agent</div>
@@ -796,8 +812,13 @@ export default function App() {
 
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <IconLogo />
-          AgentPay
+          <span className="sidebar-brand-mark" aria-hidden="true">
+            <IconLogo />
+          </span>
+          <span className="sidebar-brand-text">
+            <span className="sidebar-brand-title">AgentPay</span>
+            <span className="sidebar-brand-sub">AI Spending Mgmt</span>
+          </span>
         </div>
         <SidebarStats
           pending={pending.length}
@@ -851,6 +872,10 @@ export default function App() {
         <header className="topbar">
           <div className="topbar-left">
             <span className="test-mode-pill">Test mode</span>
+            <div className="system-status" aria-live="polite">
+              <span className="system-status-dot" aria-hidden="true" />
+              System Online
+            </div>
             <button
               type="button"
               className="btn btn-ghost btn-icon mobile-search-toggle"
@@ -867,7 +892,7 @@ export default function App() {
               <IconSearch className="search-icon" />
               <input
                 ref={searchInputRef}
-                placeholder="Search merchants, reasons…"
+                placeholder="COMMAND_SEARCH..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
@@ -931,10 +956,17 @@ export default function App() {
         </header>
 
         <div className="content">
+          <div className="content-scanline" aria-hidden="true" />
           <div className="page-header">
-            <div className="page-header-accent" aria-hidden="true" />
-            <h1>{page.title}</h1>
-            <p className="page-description">{page.description}</p>
+            <div className="page-header-main">
+              <span className="page-version">System Version: 0.1.0-Stable</span>
+              <h1>{page.title}</h1>
+              <p className="page-description">{page.description}</p>
+            </div>
+            <div className="page-clock" aria-live="off">
+              <span className="page-clock-label">Local System Time</span>
+              <span className="page-clock-value">{clock || '00:00:00:000'}</span>
+            </div>
           </div>
 
           {showError && (
@@ -990,6 +1022,106 @@ export default function App() {
               {initialLoad ? (
                 <MetricsSkeleton />
               ) : (
+                <>
+                <div className="hero-row">
+                  <div className="hero-card">
+                    <p className="hero-label">Treasury Aggregate Flow</p>
+                    <p className="hero-value">
+                      {(() => {
+                        const [whole, cents = '00'] = formatMoney(capturedTotal).split('.');
+                        return (
+                          <>
+                            {whole}
+                            <span className="hero-value-cents">.{cents}</span>
+                          </>
+                        );
+                      })()}
+                    </p>
+                    <div className="hero-meta">
+                      <div>
+                        <p className="hero-meta-label">Active Agents</p>
+                        <p className="hero-meta-value">
+                          {agents.filter((a) => a.status === 'active').length}
+                          <span className="hero-meta-hint ok">Online</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="hero-meta-label">Pending Review</p>
+                        <p className="hero-meta-value">
+                          {pending.length}
+                          <span className={`hero-meta-hint ${pending.length ? 'warn' : 'ok'}`}>
+                            {pending.length ? 'Action' : 'Clear'}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="hero-meta-label">Blocked</p>
+                        <p className="hero-meta-value">
+                          {blockedCount}
+                          <span className={`hero-meta-hint ${blockedCount ? 'danger' : 'ok'}`}>
+                            Policy
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="risk-card">
+                    <div className="risk-card-header">
+                      <h4>Active Risk Scans</h4>
+                      {(pending.length > 0 || blockedCount > 0) && (
+                        <span className="risk-pulse" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="risk-list">
+                      <div className={`risk-item ${pending.length ? 'warning' : 'success'}`}>
+                        <div className="risk-item-top">
+                          <span className="risk-item-name">PENDING_QUEUE</span>
+                          <span className="risk-item-pct">
+                            {pending.length ? `${Math.min(100, pending.length * 25)}%` : 'CLEAR'}
+                          </span>
+                        </div>
+                        <div className="risk-bar">
+                          <div
+                            className="risk-bar-fill"
+                            style={{ width: `${pending.length ? Math.min(100, pending.length * 25) : 8}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className={`risk-item ${blockedCount ? 'danger' : 'success'}`}>
+                        <div className="risk-item-top">
+                          <span className="risk-item-name">POLICY_BLOCKS</span>
+                          <span className="risk-item-pct">
+                            {blockedCount ? 'ACTIVE' : 'NOMINAL'}
+                          </span>
+                        </div>
+                        <div className="risk-bar">
+                          <div
+                            className="risk-bar-fill"
+                            style={{ width: `${blockedCount ? Math.min(100, blockedCount * 20) : 12}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="risk-item success">
+                        <div className="risk-item-top">
+                          <span className="risk-item-name">LEDGER_INTEGRITY</span>
+                          <span className="risk-item-pct">OK</span>
+                        </div>
+                        <div className="risk-bar">
+                          <div className="risk-bar-fill" style={{ width: '100%' }} />
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: 16, width: '100%' }}
+                      onClick={() => setTab('authorizations')}
+                    >
+                      Scan Approvals
+                    </button>
+                  </div>
+                </div>
+
                 <div className="metrics-row metrics-row-animated">
                   <button
                     type="button"
@@ -1051,12 +1183,13 @@ export default function App() {
                     <span className="metric-delta">Policy enforcement</span>
                   </button>
                 </div>
+                </>
               )}
 
               <div className="split-panels">
                 <div className="panel">
                   <div className="panel-header">
-                    <h3>Recent authorizations</h3>
+                    <h3>Autonomous Transaction Log</h3>
                     <button className="panel-link" onClick={() => setTab('authorizations')}>
                       View all
                     </button>
