@@ -1142,13 +1142,15 @@ export default function App() {
                             </div>
                             <div>
                               Remaining
-                              <strong>{formatMoney(Math.max(0, a.daily_budget_cents - spent))}</strong>
+                              <strong className={`budget-remaining budget-remaining-${level}`}>
+                                {formatMoney(Math.max(0, a.daily_budget_cents - spent))}
+                              </strong>
                             </div>
                           </div>
                           <div className="budget-bar">
                             <div className={`budget-bar-fill ${level}`} style={{ width: `${pct}%` }} />
                           </div>
-                          <div className="budget-pct">{pct.toFixed(0)}% used · View ledger</div>
+                          <div className={`budget-pct budget-pct-${level}`}>{pct.toFixed(0)}% used · View ledger</div>
                         </button>
                       );
                     })}

@@ -992,6 +992,20 @@ body {
   text-align: right;
 }
 
+.budget-remaining-warning,
+.budget-pct-warning {
+  color: var(--warning-text);
+}
+
+.budget-remaining-critical,
+.budget-pct-critical {
+  color: var(--danger-text);
+}
+
+.budget-remaining-normal {
+  color: var(--success-text);
+}
+
 /* Tables */
 
 .table-card {
