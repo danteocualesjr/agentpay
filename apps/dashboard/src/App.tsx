@@ -1426,7 +1426,7 @@ export default function App() {
                                   {formatEventType(e.type)}
                                 </span>
                               </td>
-                              <td>{formatMoney(e.amount_cents)}</td>
+                              <td className="amount-cell">{formatMoney(e.amount_cents)}</td>
                               <td>{e.description}</td>
                             </tr>
                           ))}
