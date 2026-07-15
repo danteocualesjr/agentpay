@@ -440,13 +440,24 @@ export default function App() {
   }, [apiKey, refresh]);
 
   useEffect(() => {
+    const timeFmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'America/Los_Angeles',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+
     function tick() {
       const now = new Date();
-      const h = String(now.getHours()).padStart(2, '0');
-      const m = String(now.getMinutes()).padStart(2, '0');
-      const s = String(now.getSeconds()).padStart(2, '0');
+      const parts = Object.fromEntries(
+        timeFmt
+          .formatToParts(now)
+          .filter((p) => p.type !== 'literal')
+          .map((p) => [p.type, p.value]),
+      );
       const ms = String(now.getMilliseconds()).padStart(3, '0');
-      setClock(`${h}:${m}:${s}:${ms}`);
+      setClock(`${parts.hour}:${parts.minute}:${parts.second}:${ms}`);
     }
     tick();
     const id = setInterval(tick, 50);
@@ -964,7 +975,7 @@ export default function App() {
               <p className="page-description">{page.description}</p>
             </div>
             <div className="page-clock" aria-live="off">
-              <span className="page-clock-label">Local System Time</span>
+              <span className="page-clock-label">Pacific Time (PDT)</span>
               <span className="page-clock-value">{clock || '00:00:00:000'}</span>
             </div>
           </div>
