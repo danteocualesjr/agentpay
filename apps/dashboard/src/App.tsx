@@ -682,6 +682,7 @@ export default function App() {
           >
             <IconClose />
           </button>
+          <div className="toast-progress" aria-hidden="true" />
         </div>
       )}
 

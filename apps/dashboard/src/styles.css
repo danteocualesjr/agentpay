@@ -1311,13 +1311,39 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px 12px 20px;
+  padding: 12px 14px 16px 20px;
   border-radius: var(--radius);
   font-size: 0.875rem;
   font-weight: 500;
   box-shadow: var(--shadow-md);
   animation: toast-in 0.25s ease;
   max-width: min(420px, calc(100vw - 40px));
+  overflow: hidden;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  transform-origin: left;
+  animation: toast-progress 3.2s linear forwards;
+}
+
+.toast-success .toast-progress {
+  background: var(--success-text);
+  opacity: 0.45;
+}
+
+.toast-error .toast-progress {
+  background: var(--danger-text);
+  opacity: 0.45;
+}
+
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 .toast-dismiss {
