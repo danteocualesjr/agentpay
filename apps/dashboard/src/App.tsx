@@ -932,6 +932,7 @@ export default function App() {
 
         <div className="content">
           <div className="page-header">
+            <div className="page-header-accent" aria-hidden="true" />
             <h1>{page.title}</h1>
             <p className="page-description">{page.description}</p>
           </div>
