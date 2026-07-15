@@ -1278,7 +1278,7 @@ export default function App() {
                         </tr>
                       ) : (
                         filteredAuth.map((a) => (
-                          <tr key={a.id}>
+                          <tr key={a.id} className={`auth-row auth-row-${a.status}`}>
                             <td><strong>{formatMoney(a.amount_cents)}</strong></td>
                             <td>
                               <div className="agent-cell agent-cell-compact">

@@ -1062,6 +1062,16 @@ tbody tr:last-child td { border-bottom: none; }
 
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+.auth-row td:first-child {
+  border-left: 3px solid transparent;
+}
+
+.auth-row-pending td:first-child { border-left-color: var(--warning-text); }
+.auth-row-approved td:first-child { border-left-color: var(--success-text); }
+.auth-row-captured td:first-child { border-left-color: var(--accent); }
+.auth-row-blocked td:first-child,
+.auth-row-denied td:first-child { border-left-color: var(--danger-text); }
+
 /* Badges */
 
 .badge {
