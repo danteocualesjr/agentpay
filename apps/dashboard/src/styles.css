@@ -2082,8 +2082,24 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--accent);
 }
 
+.mobile-nav-link.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 0 0 2px 2px;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
 .mobile-nav-icon { opacity: 0.7; }
-.mobile-nav-link.active .mobile-nav-icon { opacity: 1; }
+.mobile-nav-link.active .mobile-nav-icon {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px rgba(0, 102, 255, 0.6));
+}
 
 .mobile-nav-badge {
   position: absolute;
