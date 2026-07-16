@@ -1426,7 +1426,10 @@ body {
   position: sticky;
   top: 0;
   z-index: 1;
-  box-shadow: 0 1px 0 var(--border-light);
+  background: rgba(11, 17, 32, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 var(--border-light), 0 4px 12px rgba(0, 102, 255, 0.08);
 }
 
 table { width: 100%; border-collapse: collapse; }
