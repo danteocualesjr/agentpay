@@ -726,16 +726,20 @@ body {
   margin-bottom: 24px;
   border: 1px solid var(--border-light);
   background: var(--surface);
+  border-left-width: 3px;
 }
 
 .health-banner-ok {
   border-color: rgba(16, 185, 129, 0.35);
+  border-left-color: var(--success-text);
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, var(--surface) 100%);
 }
 
 .health-banner-warn {
   border-color: rgba(245, 158, 11, 0.4);
+  border-left-color: var(--warning-text);
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, var(--surface) 100%);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
 }
 
 .health-dot {
