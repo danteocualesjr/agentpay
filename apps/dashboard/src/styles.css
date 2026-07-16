@@ -199,10 +199,22 @@ body {
   width: 100%;
   max-width: 400px;
   background: var(--surface);
-  border: 1px solid var(--border-light);
+  border: 1px solid rgba(0, 102, 255, 0.3);
   border-radius: var(--radius-xl);
   padding: 36px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), 0 0 32px rgba(0, 102, 255, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--success-text), transparent);
 }
 
 .login-card h2 {
