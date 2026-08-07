@@ -1973,6 +1973,11 @@ tbody tr:last-child td { border-bottom: none; }
 .tag {
   display: inline-block;
   transition: border-color 0.12s, background 0.12s;
+}
+
+.tag:hover {
+  border-color: rgba(0, 102, 255, 0.45);
+  background: var(--accent-light);
   padding: 2px 8px;
   background: var(--surface-bright);
   border: 1px solid var(--border);
