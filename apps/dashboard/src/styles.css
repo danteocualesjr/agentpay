@@ -730,6 +730,7 @@ body {
 
 .page-clock-value {
   font-family: var(--font-mono);
+  text-shadow: 0 0 12px rgba(0, 102, 255, 0.25);
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text);
