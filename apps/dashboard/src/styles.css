@@ -2355,7 +2355,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 .ledger-date-row td {
-  background: var(--surface-bright);
+  background: linear-gradient(90deg, rgba(0, 102, 255, 0.06) 0%, var(--surface-bright) 40%);
   padding: 8px 20px;
   border-bottom: 1px solid var(--border-light);
 }
