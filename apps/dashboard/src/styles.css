@@ -1548,6 +1548,10 @@ tbody tr:last-child td { border-bottom: none; }
   font-family: var(--font-mono);
 }
 
+.copy-id-btn:active {
+  transform: scale(0.95);
+}
+
 .copy-id-btn:hover {
   color: var(--accent-hover);
   border-color: rgba(0, 102, 255, 0.5);
