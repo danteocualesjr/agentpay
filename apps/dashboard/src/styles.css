@@ -983,6 +983,7 @@ body {
 
 .hero-value {
   font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
   font-size: 3rem;
   font-weight: 700;
   letter-spacing: -0.04em;
