@@ -1729,6 +1729,10 @@ tbody tr:last-child td { border-bottom: none; }
 
 .results-bar {
   display: flex;
+  padding: 8px 12px;
+  background: rgba(11, 17, 32, 0.5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
