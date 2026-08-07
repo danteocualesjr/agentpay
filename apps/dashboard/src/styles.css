@@ -2018,6 +2018,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .event-badge {
   display: inline-block;
+  letter-spacing: 0.08em;
   padding: 3px 9px;
   border-radius: var(--radius);
   font-family: var(--font-mono);
