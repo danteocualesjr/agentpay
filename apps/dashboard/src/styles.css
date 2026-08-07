@@ -306,6 +306,7 @@ body {
 
 .sidebar-stats {
   display: grid;
+  transition: border-color 0.15s, box-shadow 0.15s;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin: 0 16px 16px;
