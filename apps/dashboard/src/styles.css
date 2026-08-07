@@ -1272,6 +1272,7 @@ body {
 
 .split-panels {
   display: grid;
+  align-items: start;
   grid-template-columns: 1.2fr 1fr;
   gap: 20px;
 }
