@@ -969,6 +969,7 @@ export default function App() {
         <div className="content">
           <div className="content-scanline" aria-hidden="true" />
           <div className="page-header">
+            <span className="page-header-accent" aria-hidden="true" />
             <div className="page-header-main">
               <span className="page-version">System Version: 0.1.0-Stable</span>
               <h1>{page.title}</h1>

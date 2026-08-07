@@ -655,10 +655,19 @@ body {
   justify-content: space-between;
   align-items: flex-end;
   gap: 24px;
-  padding-left: 0;
+  padding-left: 16px;
 }
 
-.page-header-accent { display: none; }
+.page-header-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--success-text) 100%);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
 
 .page-header-main { flex: 1; min-width: 0; }
 
