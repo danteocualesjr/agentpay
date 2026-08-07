@@ -260,6 +260,7 @@ body {
 
 .sidebar {
   width: var(--sidebar-width);
+  box-shadow: 1px 0 0 rgba(0, 102, 255, 0.08);
   background: var(--surface-high);
   border-right: 1px solid var(--border-light);
   display: flex;
