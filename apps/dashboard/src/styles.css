@@ -1491,6 +1491,10 @@ th {
   background: var(--bg);
 }
 
+tbody tr {
+  transition: background 0.12s ease;
+}
+
 tbody tr:hover { background: rgba(0, 102, 255, 0.05); }
 tbody tr:nth-child(even):not(.ledger-date-row) { background: rgba(11, 17, 32, 0.5); }
 tbody tr:nth-child(even):not(.ledger-date-row):hover { background: rgba(0, 102, 255, 0.05); }
