@@ -1308,6 +1308,10 @@ body {
   background: rgba(0, 102, 255, 0.05);
 }
 
+.activity-item-clickable:hover .activity-amount {
+  color: var(--accent-hover);
+}
+
 .activity-status-pending { border-left: 3px solid var(--warning-text); }
 .activity-status-approved { border-left: 3px solid var(--success-text); }
 .activity-status-captured { border-left: 3px solid var(--accent); }
