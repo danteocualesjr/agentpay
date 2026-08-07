@@ -617,6 +617,7 @@ body {
 
 .search-clear:hover {
   color: var(--text);
+  transform: scale(1.05);
   background: var(--border);
 }
 
