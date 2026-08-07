@@ -1626,7 +1626,11 @@ tbody tr:last-child td { border-bottom: none; }
   background: var(--accent-light);
 }
 
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 140px;
 
 .auth-row td:first-child {
   border-left: 3px solid transparent;
