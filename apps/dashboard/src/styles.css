@@ -181,6 +181,10 @@ body {
 .login-feature-dot {
   width: 8px;
   animation: pulse-dot 2.5s ease infinite;
+}
+
+.login-feature:nth-child(2) .login-feature-dot { animation-delay: 0.3s; }
+.login-feature:nth-child(3) .login-feature-dot { animation-delay: 0.6s; }
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
