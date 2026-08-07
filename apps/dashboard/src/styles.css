@@ -419,6 +419,7 @@ body {
 
 .nav-badge {
   background: var(--warning-bg);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
   color: var(--warning-text);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
