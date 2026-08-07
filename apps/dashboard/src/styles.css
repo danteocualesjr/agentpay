@@ -2080,6 +2080,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .preset-card.selected {
   border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.2), 0 0 0 1px var(--accent-glow);
   background: var(--accent-light);
   box-shadow: 0 0 0 1px var(--accent-glow);
 }
