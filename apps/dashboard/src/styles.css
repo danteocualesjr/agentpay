@@ -470,6 +470,10 @@ body {
 
 .dev-mode-badge {
   font-family: var(--font-mono);
+  padding: 4px 8px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--muted);
