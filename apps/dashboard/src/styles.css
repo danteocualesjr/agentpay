@@ -2354,7 +2354,11 @@ tbody tr:last-child td { border-bottom: none; }
   flex-shrink: 0;
 }
 
-.status-dot-active { background: var(--success-text); box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+.status-dot-active {
+  background: var(--success-text);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+  animation: pulse-dot 2s ease infinite;
+}
 .status-dot-paused { background: var(--warning-text); }
 .status-dot-disabled { background: var(--muted); }
 
