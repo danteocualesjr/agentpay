@@ -780,6 +780,10 @@ body {
 
 .health-banner-warn {
   border-color: rgba(245, 158, 11, 0.4);
+}
+
+.health-banner-warn:hover {
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.12);
   border-left-color: var(--warning-text);
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, var(--surface) 100%);
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
