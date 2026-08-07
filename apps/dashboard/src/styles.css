@@ -1948,6 +1948,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .toast-dismiss {
   display: flex;
+  transition: opacity 0.12s, transform 0.1s;
   align-items: center;
   justify-content: center;
   width: 26px;
