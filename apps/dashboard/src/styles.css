@@ -2143,6 +2143,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .preset-label {
   font-family: var(--font-mono);
+  color: var(--accent-hover);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--muted);
