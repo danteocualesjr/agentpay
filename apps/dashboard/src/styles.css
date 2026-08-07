@@ -1675,6 +1675,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .alert-error {
   background: var(--danger-bg);
+  border-left: 3px solid var(--danger-text);
   color: var(--danger-text);
   border: 1px solid rgba(239, 68, 68, 0.35);
 }
