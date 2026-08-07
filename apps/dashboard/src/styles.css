@@ -384,6 +384,7 @@ body {
 
 .sidebar-link:hover {
   background: var(--surface-bright);
+  transform: translateX(2px);
   color: var(--text);
 }
 
