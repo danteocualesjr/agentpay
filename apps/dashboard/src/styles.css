@@ -2470,6 +2470,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .shortcuts-list li {
   display: flex;
+  transition: color 0.12s;
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
