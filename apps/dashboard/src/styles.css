@@ -1567,6 +1567,10 @@ tbody tr:hover { background: rgba(0, 102, 255, 0.05); }
 tbody tr:hover .agent-avatar {
   box-shadow: 0 0 8px rgba(0, 102, 255, 0.3);
 }
+
+tbody tr:hover .resource-id {
+  color: var(--text-secondary);
+}
 tbody tr:nth-child(even):not(.ledger-date-row) { background: rgba(11, 17, 32, 0.5); }
 tbody tr:nth-child(even):not(.ledger-date-row):hover { background: rgba(0, 102, 255, 0.05); }
 tbody tr:last-child td { border-bottom: none; }
