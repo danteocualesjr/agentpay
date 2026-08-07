@@ -1169,6 +1169,10 @@ body {
 
 .metric-card:hover {
   box-shadow: 0 0 20px rgba(0, 102, 255, 0.12);
+}
+
+.metric-card:hover .metric-icon {
+  transform: scale(1.08);
   transform: translateY(-1px);
 }
 
