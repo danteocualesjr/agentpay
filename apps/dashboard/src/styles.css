@@ -540,6 +540,7 @@ body {
 
 .system-status-dot {
   width: 8px;
+  animation: pulse-dot 3s ease infinite;
   height: 8px;
   border-radius: 50%;
   background: var(--success-text);
