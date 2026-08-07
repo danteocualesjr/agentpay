@@ -866,6 +866,10 @@ body {
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--surface-bright);
+}
+
+.btn-ghost:active:not(:disabled) {
+  background: var(--border-light);
   color: var(--text);
 }
 
