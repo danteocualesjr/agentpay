@@ -1748,6 +1748,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .auto-refresh-dot.live {
   background: var(--success-text);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
   opacity: 1;
   animation: pulse-dot 2s ease infinite;
 }
