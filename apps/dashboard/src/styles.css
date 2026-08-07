@@ -1202,6 +1202,7 @@ body {
 
 .panel {
   background: var(--surface);
+  transition: box-shadow 0.15s, border-color 0.15s;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
