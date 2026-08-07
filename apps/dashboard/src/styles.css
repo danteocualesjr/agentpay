@@ -2135,6 +2135,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .simulate-layout {
   display: grid;
+  align-items: stretch;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
