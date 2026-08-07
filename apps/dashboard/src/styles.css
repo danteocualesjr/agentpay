@@ -2333,6 +2333,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .policy-chip-success {
   background: var(--success-bg);
+  border-color: rgba(16, 185, 129, 0.3);
   color: var(--success-text);
 }
 
