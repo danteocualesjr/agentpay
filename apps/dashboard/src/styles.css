@@ -603,6 +603,7 @@ body {
 
 .search-clear {
   display: flex;
+  transition: transform 0.1s, color 0.12s, background 0.12s;
   align-items: center;
   justify-content: center;
   width: 22px;
