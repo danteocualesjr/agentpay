@@ -1242,6 +1242,11 @@ body {
 
 .panel-link:hover { color: var(--accent-hover); }
 
+.panel:hover {
+  box-shadow: 0 0 24px rgba(0, 102, 255, 0.08);
+  border-color: rgba(0, 102, 255, 0.25);
+}
+
 .panel-body { padding: 0; }
 
 .activity-list { list-style: none; margin: 0; padding: 0; }
