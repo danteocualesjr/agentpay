@@ -1913,6 +1913,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 .filter-chip.active {
+  transform: scale(1.02);
   background: var(--accent-light);
   border-color: rgba(0, 102, 255, 0.5);
   color: var(--accent-hover);
