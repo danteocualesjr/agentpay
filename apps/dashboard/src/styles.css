@@ -2345,6 +2345,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .policy-chip-danger {
   background: var(--danger-bg);
+  border-color: rgba(239, 68, 68, 0.3);
   color: var(--danger-text);
 }
 
