@@ -1708,6 +1708,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .clear-filters-btn {
   border: none;
+  transition: color 0.12s, transform 0.12s;
   background: none;
   color: var(--accent);
   font-size: 0.8125rem;
