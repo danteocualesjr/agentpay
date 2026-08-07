@@ -1202,6 +1202,7 @@ body {
 
 .metric-icon {
   display: flex;
+  transition: transform 0.15s;
   align-items: center;
   justify-content: center;
   width: 32px;
