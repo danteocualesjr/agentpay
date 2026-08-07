@@ -499,6 +499,7 @@ body {
 }
 
 .test-mode-pill {
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
   font-family: var(--font-mono);
   background: var(--test-mode-bg);
   color: var(--test-mode);
