@@ -1533,6 +1533,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .copy-id-btn {
   display: inline-flex;
+  transition: transform 0.1s, color 0.12s, border-color 0.12s, background 0.12s;
   align-items: center;
   justify-content: center;
   min-width: 24px;
