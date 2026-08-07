@@ -1116,6 +1116,27 @@ body {
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
 }
 
+.metric-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.metric-card:hover::before {
+  opacity: 1;
+}
+
 .metric-card:hover {
   box-shadow: 0 0 20px rgba(0, 102, 255, 0.12);
   transform: translateY(-1px);
