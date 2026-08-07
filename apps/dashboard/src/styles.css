@@ -1575,6 +1575,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .resource-id {
   font-family: var(--font-mono);
+  transition: color 0.12s;
   font-size: 0.75rem;
   color: var(--muted);
 }
