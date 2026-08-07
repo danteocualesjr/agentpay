@@ -2479,6 +2479,10 @@ tbody tr:last-child td { border-bottom: none; }
 
 .ledger-entry-count {
   font-size: 0.8125rem;
+  padding: 4px 10px;
+  background: var(--surface-bright);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
   color: var(--muted);
   padding-bottom: 10px;
   font-family: var(--font-mono);
