@@ -2318,6 +2318,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .spin {
   animation: spin 0.8s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(0, 102, 255, 0.4));
 }
 
 .btn-label-short { display: none; }
