@@ -946,7 +946,7 @@ body {
 
 .hero-card {
   background: var(--surface);
-  border: 1px solid rgba(0, 102, 255, 0.25);
+  border: 1px solid rgba(0, 102, 255, 0.35);
   border-radius: var(--radius-xl);
   padding: 32px;
   position: relative;
