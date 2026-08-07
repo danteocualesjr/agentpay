@@ -1473,6 +1473,10 @@ body {
 .table-card {
   background: var(--surface);
   transition: box-shadow 0.15s;
+}
+
+.table-card:hover {
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.06);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
   overflow: hidden;
