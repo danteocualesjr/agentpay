@@ -1017,6 +1017,7 @@ body {
 
 .risk-card {
   background: var(--surface);
+  border-top: 2px solid rgba(0, 102, 255, 0.4);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
   padding: 24px;
