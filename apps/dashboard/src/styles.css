@@ -972,6 +972,7 @@ body {
 
 .amount-preview {
   float: right;
+  text-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
   font-weight: 600;
   color: var(--accent-hover);
   font-size: 0.875rem;
