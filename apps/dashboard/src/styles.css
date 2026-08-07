@@ -1842,7 +1842,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 .page-content {
-  animation: page-in 0.2s ease;
+  animation: page-in 0.25s ease-out;
 }
 
 .form-card, .toolbar {
