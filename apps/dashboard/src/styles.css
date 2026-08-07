@@ -203,6 +203,10 @@ body {
 .login-card {
   width: 100%;
   transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.login-card:focus-within {
+  box-shadow: var(--shadow-md), 0 0 40px rgba(0, 102, 255, 0.18);
   max-width: 400px;
   background: var(--surface);
   border: 1px solid rgba(0, 102, 255, 0.3);
