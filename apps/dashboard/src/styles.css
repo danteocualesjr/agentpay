@@ -1436,6 +1436,7 @@ body {
 
 .budget-bar-fill {
   height: 100%;
+  transition: width 0.3s ease, filter 0.15s;
   background: linear-gradient(90deg, var(--accent), #3b82f6);
   border-radius: 999px;
   transition: width 0.3s ease;
