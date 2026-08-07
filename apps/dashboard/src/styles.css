@@ -2208,6 +2208,8 @@ tbody tr:last-child td { border-bottom: none; }
 
 .mobile-nav-link.active {
   color: var(--accent);
+  background: rgba(0, 102, 255, 0.08);
+  border-radius: var(--radius-lg);
 }
 
 .mobile-nav-link.active::before {
