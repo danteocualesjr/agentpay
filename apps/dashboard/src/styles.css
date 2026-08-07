@@ -1759,8 +1759,14 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--muted);
 }
 
+@keyframes empty-pulse {
+  0%, 100% { border-color: var(--border); }
+  50% { border-color: rgba(0, 102, 255, 0.45); }
+}
+
 .empty-icon-wrap {
   display: flex;
+  animation: empty-pulse 3s ease-in-out infinite;
   align-items: center;
   justify-content: center;
   width: 56px;
