@@ -704,6 +704,7 @@ body {
 
 .page-version {
   display: inline-block;
+  box-shadow: 0 0 8px rgba(0, 102, 255, 0.15);
   margin-bottom: 10px;
   padding: 4px 8px;
   background: var(--accent-light);
