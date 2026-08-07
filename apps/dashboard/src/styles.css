@@ -1967,7 +1967,7 @@ tbody tr:last-child td { border-bottom: none; }
 .skeleton {
   background: linear-gradient(90deg, var(--border-light) 20%, #1e293b 50%, var(--border-light) 80%);
   background-size: 200% 100%;
-  animation: shimmer 1.4s ease infinite;
+  animation: shimmer 1.8s ease infinite;
   border-radius: var(--radius);
 }
 
