@@ -2256,6 +2256,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .agent-avatar {
   display: inline-flex;
+  transition: box-shadow 0.12s, transform 0.12s;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-lg);
