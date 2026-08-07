@@ -1652,6 +1652,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 .pending-banner {
   display: flex;
+  border-left: 3px solid var(--warning-text);
   align-items: center;
   justify-content: space-between;
   gap: 16px;
