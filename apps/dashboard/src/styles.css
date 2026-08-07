@@ -2297,6 +2297,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 
 .ledger-toolbar {
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(0, 102, 255, 0.04) 100%);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
