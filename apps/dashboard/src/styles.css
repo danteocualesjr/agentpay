@@ -2582,7 +2582,7 @@ tbody tr:last-child td { border-bottom: none; }
   justify-content: center;
   padding: 24px;
   animation: fade-in 0.15s ease;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .confirm-dialog {
