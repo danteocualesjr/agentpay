@@ -1966,6 +1966,10 @@ tbody tr:last-child td { border-bottom: none; }
 
 .filter-bar {
   display: flex;
+  padding: 4px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
