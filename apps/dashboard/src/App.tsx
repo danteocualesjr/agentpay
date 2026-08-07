@@ -125,6 +125,24 @@ function budgetBarLevel(pct: number) {
   return 'normal';
 }
 
+function getDayStartUtc(iso: string): string {
+  const d = new Date(iso);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+function agentDailyBudgetUsage(authorizations: Authorization[], agentId: string): number {
+  const dayStart = getDayStartUtc(new Date().toISOString());
+  return authorizations
+    .filter((x) => {
+      if (x.agent_id !== agentId) return false;
+      if (x.status === 'captured') return !!x.captured_at && x.captured_at >= dayStart;
+      if (x.status === 'approved' || x.status === 'pending') return true;
+      return false;
+    })
+    .reduce((sum, x) => sum + x.amount_cents, 0);
+}
+
 const AVATAR_COLORS = [
   'avatar-sky', 'avatar-indigo', 'avatar-violet', 'avatar-emerald', 'avatar-amber', 'avatar-rose',
 ];
@@ -1259,9 +1277,7 @@ export default function App() {
                   </div>
                   <div className="panel-body">
                     {agents.map((a) => {
-                      const spent = authorizations
-                        .filter((x) => x.agent_id === a.id && x.status === 'captured')
-                        .reduce((s, x) => s + x.amount_cents, 0);
+                      const spent = agentDailyBudgetUsage(authorizations, a.id);
                       const pct = Math.min(100, (spent / a.daily_budget_cents) * 100);
                       const level = budgetBarLevel(pct);
                       return (

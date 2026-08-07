@@ -186,17 +186,16 @@ body {
 
 .login-feature-dot {
   width: 8px;
-  animation: pulse-dot 2.5s ease infinite;
-}
-
-.login-feature:nth-child(2) .login-feature-dot { animation-delay: 0.3s; }
-.login-feature:nth-child(3) .login-feature-dot { animation-delay: 0.6s; }
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-glow);
   flex-shrink: 0;
+  animation: pulse-dot 2.5s ease infinite;
 }
+
+.login-feature:nth-child(2) .login-feature-dot { animation-delay: 0.3s; }
+.login-feature:nth-child(3) .login-feature-dot { animation-delay: 0.6s; }
 
 .login-right {
   display: flex;
@@ -1337,6 +1336,7 @@ body {
   color: var(--accent-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
 
 .panel:hover {
   box-shadow: 0 0 24px rgba(0, 102, 255, 0.08);
@@ -1646,6 +1646,7 @@ tbody tr:last-child td { border-bottom: none; }
   gap: 8px;
   flex-wrap: wrap;
   min-width: 140px;
+}
 
 .auth-row td:first-child {
   border-left: 3px solid transparent;

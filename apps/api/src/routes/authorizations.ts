@@ -13,7 +13,7 @@ function parseAuthorization(row: Record<string, unknown>) {
   };
 }
 
-function getDailySpent(agentId: string, now: string): number {
+function getDailyCaptured(agentId: string, now: string): number {
   const dayStart = getDayStart(now);
   const row = db
     .prepare(
@@ -22,6 +22,22 @@ function getDailySpent(agentId: string, now: string): number {
     )
     .get(agentId, dayStart) as { total: number };
   return row.total;
+}
+
+function getOutstandingCommitments(agentId: string, excludeAuthorizationId?: string): number {
+  let query = `SELECT COALESCE(SUM(amount_cents), 0) as total FROM authorizations
+     WHERE agent_id = ? AND status IN ('approved', 'pending')`;
+  const params: string[] = [agentId];
+  if (excludeAuthorizationId) {
+    query += ' AND id != ?';
+    params.push(excludeAuthorizationId);
+  }
+  const row = db.prepare(query).get(...params) as { total: number };
+  return row.total;
+}
+
+function getDailyBudgetUsage(agentId: string, now: string, excludeAuthorizationId?: string): number {
+  return getDailyCaptured(agentId, now) + getOutstandingCommitments(agentId, excludeAuthorizationId);
 }
 
 function getAgent(orgId: string, agentId: string) {
@@ -83,7 +99,7 @@ authorizationRoutes.post('/agents/:id/authorize', async (c) => {
 
   const { amount_cents, merchant, reason, currency, metadata = {} } = parsed.data;
   const now = new Date().toISOString();
-  const dailySpent = getDailySpent(agentId, now);
+  const dailySpent = getDailyBudgetUsage(agentId, now);
 
   const policy = evaluatePolicy({
     amount_cents,
@@ -228,10 +244,10 @@ authorizationRoutes.post('/authorizations/:id/capture', (c) => {
   }
 
   const now = new Date().toISOString();
-  const dailySpent = getDailySpent(auth.agent_id as string, now);
+  const dailyUsage = getDailyBudgetUsage(auth.agent_id as string, now, id);
   const agent = getAgent(org.id, auth.agent_id as string)!;
 
-  if (dailySpent + (auth.amount_cents as number) > (agent.daily_budget_cents as number)) {
+  if (dailyUsage + (auth.amount_cents as number) > (agent.daily_budget_cents as number)) {
     return c.json({ error: { type: 'invalid_request', message: 'Daily budget would be exceeded on capture' } }, 400);
   }
 
