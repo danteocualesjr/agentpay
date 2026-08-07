@@ -390,6 +390,7 @@ body {
 
 .sidebar-link.active {
   background: var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 102, 255, 0.35);
   color: white;
   font-weight: 700;
 }
