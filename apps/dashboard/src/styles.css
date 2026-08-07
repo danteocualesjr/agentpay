@@ -854,6 +854,7 @@ body {
 
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
   filter: brightness(1.08);
 }
 
