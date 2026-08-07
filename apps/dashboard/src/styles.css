@@ -1274,7 +1274,10 @@ body {
   letter-spacing: 0.06em;
 }
 
-.panel-link:hover { color: var(--accent-hover); }
+.panel-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 
 .panel:hover {
   box-shadow: 0 0 24px rgba(0, 102, 255, 0.08);
