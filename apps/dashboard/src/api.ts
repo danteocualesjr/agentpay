@@ -30,14 +30,16 @@ export function clearApiKey() {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const apiKey = getApiKey();
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      ...options.headers,
-    },
-  });
+  const method = options.method ?? 'GET';
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  if (method !== 'GET' && method !== 'HEAD' && !headers['Idempotency-Key']) {
+    headers['Idempotency-Key'] = crypto.randomUUID();
+  }
+  const res = await fetch(path, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
     throw new Error(err.error?.message ?? 'Request failed');

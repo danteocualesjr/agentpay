@@ -790,7 +790,7 @@ export default function App() {
     }
   }
 
-  async function toggleAgentStatus(agent: Agent) {
+  function openEditAgent(agent: Agent) {
     setEditingAgent(agent);
     setEditBudget(String(agent.daily_budget_cents));
     setEditThreshold(String(agent.approval_threshold_cents));
@@ -819,6 +819,21 @@ export default function App() {
       setError(e instanceof Error ? e.message : 'Failed to update agent');
     } finally {
       setSavingAgent(false);
+    }
+  }
+
+  async function deleteAgent(agent: Agent) {
+    if (!confirm(`Disable agent "${agent.name}"? This cannot be undone if the agent has open authorizations.`)) return;
+    setActionLoading(`delete-${agent.id}`);
+    setError('');
+    try {
+      await api.deleteAgent(agent.id);
+      showToast(`Agent "${agent.name}" disabled`);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete agent');
+    } finally {
+      setActionLoading(null);
     }
   }
 
