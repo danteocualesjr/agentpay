@@ -34,6 +34,10 @@ export const api = {
   authorizations: (status?: string) =>
     request<{ data: Authorization[] }>(`/v1/authorizations${status ? `?status=${status}` : ''}`),
   ledger: (agentId: string) => request<{ data: LedgerEntry[] }>(`/v1/agents/${agentId}/ledger`),
+  orgLedger: (limit = 100, offset = 0) =>
+    request<{ data: LedgerEntry[]; total: number; limit: number; offset: number }>(
+      `/v1/ledger?limit=${limit}&offset=${offset}`,
+    ),
   authorize: (agentId: string, body: object) =>
     request<Authorization>(`/v1/agents/${agentId}/authorize`, { method: 'POST', body: JSON.stringify(body) }),
   approve: (id: string) => request<Authorization>(`/v1/authorizations/${id}/approve`, { method: 'POST' }),

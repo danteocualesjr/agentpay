@@ -449,6 +449,7 @@ export default function App() {
   const [creatingWebhook, setCreatingWebhook] = useState(false);
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [ledgerScope, setLedgerScope] = useState<'agent' | 'org'>('agent');
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -1716,6 +1717,34 @@ export default function App() {
             <>
               <div className="ledger-toolbar">
                 <div className="ledger-toolbar-left">
+                  <div className="filter-bar" style={{ marginBottom: 0 }}>
+                    <button
+                      type="button"
+                      className={`filter-chip ${ledgerScope === 'agent' ? 'active' : ''}`}
+                      onClick={async () => {
+                        setLedgerScope('agent');
+                        if (selectedAgent) {
+                          const led = await api.ledger(selectedAgent);
+                          setLedger(led.data);
+                        }
+                      }}
+                    >
+                      By agent
+                    </button>
+                    <button
+                      type="button"
+                      className={`filter-chip ${ledgerScope === 'org' ? 'active' : ''}`}
+                      onClick={async () => {
+                        setLedgerScope('org');
+                        const led = await api.orgLedger();
+                        setLedger(led.data);
+                      }}
+                    >
+                      All agents
+                    </button>
+                  </div>
+                  {ledgerScope === 'agent' && (
+                    <>
                   <label className="field-label" htmlFor="ledger-agent">Agent</label>
                   <select
                     id="ledger-agent"
@@ -1732,6 +1761,8 @@ export default function App() {
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
+                    </>
+                  )}
                   {!initialLoad && ledger.length > 0 && (
                     <span className="ledger-entry-count">
                       {ledger.length} event{ledger.length !== 1 ? 's' : ''}
@@ -1757,6 +1788,7 @@ export default function App() {
                     <thead>
                       <tr>
                         <th>Timestamp</th>
+                        {ledgerScope === 'org' && <th>Agent</th>}
                         <th>Event</th>
                         <th>Amount</th>
                         <th>Description</th>
@@ -1765,7 +1797,7 @@ export default function App() {
                     {ledger.length === 0 ? (
                       <tbody>
                         <tr>
-                          <td colSpan={4}>
+                          <td colSpan={ledgerScope === 'org' ? 5 : 4}>
                             <EmptyState
                               title="No ledger entries"
                               description="Events appear here as agents request and capture spend."
@@ -1778,7 +1810,7 @@ export default function App() {
                       ledgerGroups.map((group) => (
                         <tbody key={group.label} className="ledger-group">
                           <tr className="ledger-date-row">
-                            <td colSpan={4}>
+                            <td colSpan={ledgerScope === 'org' ? 5 : 4}>
                               <span className="ledger-date-label">{group.label}</span>
                               <span className="ledger-date-count">{group.entries.length} event{group.entries.length !== 1 ? 's' : ''}</span>
                             </td>
@@ -1788,6 +1820,9 @@ export default function App() {
                               <td>
                                 <span title={formatDate(e.created_at)}>{formatRelative(e.created_at)}</span>
                               </td>
+                              {ledgerScope === 'org' && (
+                                <td>{agentName(e.agent_id)}</td>
+                              )}
                               <td>
                                 <span className={`event-badge event-badge-${ledgerEventVariant(e.type)}`}>
                                   {formatEventType(e.type)}
