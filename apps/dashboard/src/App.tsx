@@ -1623,6 +1623,7 @@ export default function App() {
               {initialLoad ? (
                 <TableSkeleton cols={8} />
               ) : (
+                <>
                 <div className="table-card table-card-sticky">
                   <table>
                     <thead>
@@ -1736,6 +1737,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
+                </>
               )}
             </>
           )}
