@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry, type WebhookEndpoint } from './api';
+import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry, type Organization, type WebhookEndpoint } from './api';
 import {
   IconAgents,
   IconClose,
@@ -22,9 +22,10 @@ import {
   IconSearch,
   IconShield,
   IconWebhook,
+  IconSettings,
 } from './icons';
 
-type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate' | 'webhooks';
+type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate' | 'webhooks' | 'settings';
 
 const NAV: { id: Tab; label: string; icon: typeof IconHome; shortcut: string }[] = [
   { id: 'overview', label: 'Home', icon: IconHome, shortcut: '1' },
@@ -33,6 +34,7 @@ const NAV: { id: Tab; label: string; icon: typeof IconHome; shortcut: string }[]
   { id: 'ledger', label: 'Audit log', icon: IconLedger, shortcut: '4' },
   { id: 'simulate', label: 'Simulate', icon: IconPlay, shortcut: '5' },
   { id: 'webhooks', label: 'Webhooks', icon: IconWebhook, shortcut: '6' },
+  { id: 'settings', label: 'Settings', icon: IconSettings, shortcut: '7' },
 ];
 
 const TAB_BY_SHORTCUT = Object.fromEntries(NAV.map((n) => [n.shortcut, n.id])) as Record<string, Tab>;
@@ -61,6 +63,10 @@ const PAGE_META: Record<Tab, { title: string; description: string }> = {
   webhooks: {
     title: 'Webhooks',
     description: 'Register endpoints to receive real-time authorization and spend events.',
+  },
+  settings: {
+    title: 'Settings',
+    description: 'Organization details and API key information.',
   },
 };
 
@@ -442,6 +448,7 @@ export default function App() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [creatingWebhook, setCreatingWebhook] = useState(false);
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -455,10 +462,16 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      const [a, authz, wh] = await Promise.all([api.agents(), api.authorizations(), api.webhooks()]);
+      const [a, authz, wh, org] = await Promise.all([
+        api.agents(),
+        api.authorizations(),
+        api.webhooks(),
+        api.organization(),
+      ]);
       setAgents(a.data);
       setAuthorizations(authz.data);
       setWebhooks(wh.data);
+      setOrganization(org);
       const agentId = selectedAgent || a.data[0]?.id;
       if (agentId) {
         setSelectedAgent(agentId);
@@ -1843,6 +1856,28 @@ export default function App() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {tab === 'settings' && (
+            <div className="settings-layout">
+              <div className="form-card">
+                <h3>Organization</h3>
+                {organization ? (
+                  <dl className="settings-list">
+                    <div><dt>Name</dt><dd>{organization.name}</dd></div>
+                    <div><dt>Organization ID</dt><dd><code>{organization.id}</code></dd></div>
+                    <div><dt>API key</dt><dd><code>{organization.api_key_preview}</code></dd></div>
+                    <div><dt>Created</dt><dd>{formatDate(organization.created_at)}</dd></div>
+                  </dl>
+                ) : (
+                  <p className="muted">Loading organization…</p>
+                )}
+                <button type="button" className="btn btn-ghost sign-out-btn" onClick={signOut} style={{ marginTop: 16 }}>
+                  <IconLogout />
+                  Sign out
+                </button>
               </div>
             </div>
           )}

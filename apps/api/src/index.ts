@@ -6,6 +6,7 @@ import { idempotencyMiddleware } from './middleware/idempotency.js';
 import { agentRoutes } from './routes/agents.js';
 import { authorizationRoutes } from './routes/authorizations.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { organizationRoutes } from './routes/organization.js';
 
 const app = new Hono();
 
@@ -19,6 +20,7 @@ v1.use('*', idempotencyMiddleware);
 v1.route('/', agentRoutes);
 v1.route('/', authorizationRoutes);
 v1.route('/', webhookRoutes);
+v1.route('/', organizationRoutes);
 
 app.route('/v1', v1);
 

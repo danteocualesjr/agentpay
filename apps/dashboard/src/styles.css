@@ -2187,6 +2187,38 @@ tbody tr:last-child td { border-bottom: none; }
   font-family: var(--font-mono);
 }
 
+.settings-layout { max-width: 520px; }
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.settings-list div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-list dt {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-list dd {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.settings-list code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
 /* Agents */
 
 .agents-toolbar {

@@ -48,6 +48,7 @@ export const api = {
   webhooks: () => request<{ data: WebhookEndpoint[] }>('/v1/webhook_endpoints'),
   createWebhook: (body: object) =>
     request<WebhookEndpoint & { secret: string }>('/v1/webhook_endpoints', { method: 'POST', body: JSON.stringify(body) }),
+  organization: () => request<Organization>('/v1/organization'),
 };
 
 export interface Agent {
@@ -94,4 +95,11 @@ export interface WebhookEndpoint {
   enabled: boolean;
   created_at: string;
   secret?: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  created_at: string;
+  api_key_preview: string;
 }
