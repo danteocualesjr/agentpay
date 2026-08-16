@@ -10,10 +10,18 @@ import { organizationRoutes } from './routes/organization.js';
 import { ledgerRoutes } from './routes/ledger.js';
 
 const app = new Hono();
+const startedAt = Date.now();
 
 app.use('*', cors({ origin: ['http://localhost:5174', 'http://127.0.0.1:5174'] }));
 
-app.get('/health', (c) => c.json({ status: 'ok', service: 'agentpay-api' }));
+app.get('/health', (c) =>
+  c.json({
+    status: 'ok',
+    service: 'agentpay-api',
+    version: '0.1.0',
+    uptime_seconds: Math.floor((Date.now() - startedAt) / 1000),
+  }),
+);
 
 const v1 = new Hono();
 v1.use('*', authMiddleware);
