@@ -45,6 +45,9 @@ export const api = {
     request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   updateAgent: (id: string, body: object) =>
     request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  webhooks: () => request<{ data: WebhookEndpoint[] }>('/v1/webhook_endpoints'),
+  createWebhook: (body: object) =>
+    request<WebhookEndpoint & { secret: string }>('/v1/webhook_endpoints', { method: 'POST', body: JSON.stringify(body) }),
 };
 
 export interface Agent {
@@ -82,4 +85,13 @@ export interface LedgerEntry {
   amount_cents: number;
   description: string;
   created_at: string;
+}
+
+export interface WebhookEndpoint {
+  id: string;
+  org_id: string;
+  url: string;
+  enabled: boolean;
+  created_at: string;
+  secret?: string;
 }

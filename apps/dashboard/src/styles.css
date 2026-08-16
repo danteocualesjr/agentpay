@@ -2165,6 +2165,28 @@ tbody tr:last-child td { border-bottom: none; }
   white-space: nowrap;
 }
 
+.webhooks-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.webhook-secret-banner {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--success-bg);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 0.8125rem;
+}
+
+.webhook-secret-banner code {
+  display: block;
+  margin-top: 8px;
+  word-break: break-all;
+  font-family: var(--font-mono);
+}
+
 /* Agents */
 
 .agents-toolbar {

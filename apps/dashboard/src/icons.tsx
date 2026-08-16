@@ -154,6 +154,22 @@ export function IconDownload({ className }: IconProps) {
   );
 }
 
+export function IconWebhook({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M6.5 2a3.5 3.5 0 013.4 2.6A4 4 0 0112 5v1.5a2.5 2.5 0 010 5v.5H4v-.5a2.5 2.5 0 010-5V5a4 4 0 012.1-3.4A3.5 3.5 0 016.5 2zm0 1.5a2 2 0 00-1.9 1.4A2.5 2.5 0 004.5 5v1.5a1 1 0 000 2V10h7V8.5a1 1 0 000-2V5a2.5 2.5 0 00-2.1-2.1A2 2 0 006.5 3.5z" />
+    </svg>
+  );
+}
+
+export function IconSettings({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+      <path d="M8 4.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zm6.2 2.1l-1.2-.5-.1-1.3 1.1-.9-.8-1.3-1.3.4-.9-.9-.9.9-1.3-.4-.8 1.3 1.1.9-.1 1.3-1.2.5v1.6l1.2.5.1 1.3-1.1.9.8 1.3 1.3-.4.9.9.9-.9 1.3.4.8-1.3-1.1-.9.1-1.3 1.2-.5V6.6z" />
+    </svg>
+  );
+}
+
 export function IconLogo({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 28 28" width="28" height="28">

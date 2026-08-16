@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry } from './api';
+import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry, type WebhookEndpoint } from './api';
 import {
   IconAgents,
   IconClose,
@@ -21,9 +21,10 @@ import {
   IconRefresh,
   IconSearch,
   IconShield,
+  IconWebhook,
 } from './icons';
 
-type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate';
+type Tab = 'overview' | 'agents' | 'authorizations' | 'ledger' | 'simulate' | 'webhooks';
 
 const NAV: { id: Tab; label: string; icon: typeof IconHome; shortcut: string }[] = [
   { id: 'overview', label: 'Home', icon: IconHome, shortcut: '1' },
@@ -31,6 +32,7 @@ const NAV: { id: Tab; label: string; icon: typeof IconHome; shortcut: string }[]
   { id: 'authorizations', label: 'Approvals', icon: IconShield, shortcut: '3' },
   { id: 'ledger', label: 'Audit log', icon: IconLedger, shortcut: '4' },
   { id: 'simulate', label: 'Simulate', icon: IconPlay, shortcut: '5' },
+  { id: 'webhooks', label: 'Webhooks', icon: IconWebhook, shortcut: '6' },
 ];
 
 const TAB_BY_SHORTCUT = Object.fromEntries(NAV.map((n) => [n.shortcut, n.id])) as Record<string, Tab>;
@@ -55,6 +57,10 @@ const PAGE_META: Record<Tab, { title: string; description: string }> = {
   simulate: {
     title: 'Simulate',
     description: 'Test the policy engine with sample spend requests.',
+  },
+  webhooks: {
+    title: 'Webhooks',
+    description: 'Register endpoints to receive real-time authorization and spend events.',
   },
 };
 
@@ -432,6 +438,10 @@ export default function App() {
   const [editThreshold, setEditThreshold] = useState('');
   const [editAllowlist, setEditAllowlist] = useState('');
   const [savingAgent, setSavingAgent] = useState(false);
+  const [webhooks, setWebhooks] = useState<WebhookEndpoint[]>([]);
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [creatingWebhook, setCreatingWebhook] = useState(false);
+  const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -445,9 +455,10 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      const [a, authz] = await Promise.all([api.agents(), api.authorizations()]);
+      const [a, authz, wh] = await Promise.all([api.agents(), api.authorizations(), api.webhooks()]);
       setAgents(a.data);
       setAuthorizations(authz.data);
+      setWebhooks(wh.data);
       const agentId = selectedAgent || a.data[0]?.id;
       if (agentId) {
         setSelectedAgent(agentId);
@@ -687,6 +698,25 @@ export default function App() {
       setLedger(led.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load ledger');
+    }
+  }
+
+  async function createWebhook() {
+    const url = webhookUrl.trim();
+    if (!url) return;
+    setCreatingWebhook(true);
+    setError('');
+    try {
+      const endpoint = await api.createWebhook({ url });
+      setNewWebhookSecret(endpoint.secret);
+      setWebhookUrl('');
+      showToast('Webhook endpoint created');
+      const wh = await api.webhooks();
+      setWebhooks(wh.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create webhook');
+    } finally {
+      setCreatingWebhook(false);
     }
   }
 
@@ -1761,6 +1791,60 @@ export default function App() {
                 </div>
               )}
             </>
+          )}
+
+          {tab === 'webhooks' && (
+            <div className="webhooks-layout">
+              <div className="form-card">
+                <h3>Add webhook endpoint</h3>
+                <p className="form-hint">Events are signed with HMAC-SHA256. Save the secret when creating — it is only shown once.</p>
+                <label className="field-label" htmlFor="webhook-url">Endpoint URL</label>
+                <input
+                  id="webhook-url"
+                  className="field-input"
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  placeholder="https://example.com/webhooks/agentpay"
+                />
+                <button type="button" className="btn btn-primary" onClick={createWebhook} disabled={creatingWebhook || !webhookUrl.trim()}>
+                  {creatingWebhook ? 'Creating…' : 'Add endpoint'}
+                </button>
+                {newWebhookSecret && (
+                  <div className="webhook-secret-banner">
+                    <strong>Signing secret (copy now):</strong>
+                    <code>{newWebhookSecret}</code>
+                  </div>
+                )}
+              </div>
+              <div className="table-card">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>URL</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webhooks.length === 0 ? (
+                      <tr>
+                        <td colSpan={3}>
+                          <EmptyState title="No webhooks configured" description="Add an endpoint to receive authorization and spend events." />
+                        </td>
+                      </tr>
+                    ) : (
+                      webhooks.map((w) => (
+                        <tr key={w.id}>
+                          <td className="cell-truncate" title={w.url}>{w.url}</td>
+                          <td><StatusBadge status={w.enabled ? 'active' : 'disabled'} /></td>
+                          <td className="muted">{formatRelative(w.created_at)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
           {tab === 'simulate' && (
