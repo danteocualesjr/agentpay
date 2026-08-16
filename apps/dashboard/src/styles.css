@@ -2219,6 +2219,14 @@ tbody tr:last-child td { border-bottom: none; }
   font-size: 0.8125rem;
 }
 
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
 /* Agents */
 
 .agents-toolbar {

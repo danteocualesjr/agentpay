@@ -450,6 +450,9 @@ export default function App() {
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [ledgerScope, setLedgerScope] = useState<'agent' | 'org'>('agent');
+  const [authPage, setAuthPage] = useState(0);
+  const [authTotal, setAuthTotal] = useState(0);
+  const AUTH_PAGE_SIZE = 25;
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -465,12 +468,13 @@ export default function App() {
     try {
       const [a, authz, wh, org] = await Promise.all([
         api.agents(),
-        api.authorizations(),
+        api.authorizations(undefined, AUTH_PAGE_SIZE, authPage * AUTH_PAGE_SIZE),
         api.webhooks(),
         api.organization(),
       ]);
       setAgents(a.data);
       setAuthorizations(authz.data);
+      setAuthTotal(authz.total);
       setWebhooks(wh.data);
       setOrganization(org);
       const agentId = selectedAgent || a.data[0]?.id;
@@ -486,7 +490,7 @@ export default function App() {
       setLoading(false);
       setLastRefreshed(new Date());
     }
-  }, [selectedAgent]);
+  }, [selectedAgent, authPage]);
 
   useEffect(() => {
     if (apiKey) refresh();
@@ -1709,6 +1713,29 @@ export default function App() {
                     </tbody>
                   </table>
                 </div>
+                {!initialLoad && authTotal > AUTH_PAGE_SIZE && (
+                  <div className="pagination-bar">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={authPage === 0}
+                      onClick={() => setAuthPage((p) => Math.max(0, p - 1))}
+                    >
+                      Previous
+                    </button>
+                    <span className="muted">
+                      Page {authPage + 1} of {Math.ceil(authTotal / AUTH_PAGE_SIZE)} ({authTotal} total)
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={(authPage + 1) * AUTH_PAGE_SIZE >= authTotal}
+                      onClick={() => setAuthPage((p) => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               )}
             </>
           )}

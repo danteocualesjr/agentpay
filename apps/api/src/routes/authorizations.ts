@@ -56,17 +56,31 @@ export const authorizationRoutes = new Hono();
 authorizationRoutes.get('/authorizations', (c) => {
   const org = c.get('org') as Org;
   const status = c.req.query('status');
+  const limit = Math.min(Number(c.req.query('limit') ?? 100), 500);
+  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0);
   let rows;
+  let total;
   if (status) {
     rows = db
-      .prepare('SELECT * FROM authorizations WHERE org_id = ? AND status = ? ORDER BY created_at DESC')
-      .all(org.id, status);
+      .prepare('SELECT * FROM authorizations WHERE org_id = ? AND status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
+      .all(org.id, status, limit, offset);
+    total = db
+      .prepare('SELECT COUNT(*) as count FROM authorizations WHERE org_id = ? AND status = ?')
+      .get(org.id, status) as { count: number };
   } else {
     rows = db
-      .prepare('SELECT * FROM authorizations WHERE org_id = ? ORDER BY created_at DESC')
-      .all(org.id);
+      .prepare('SELECT * FROM authorizations WHERE org_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
+      .all(org.id, limit, offset);
+    total = db
+      .prepare('SELECT COUNT(*) as count FROM authorizations WHERE org_id = ?')
+      .get(org.id) as { count: number };
   }
-  return c.json({ data: rows.map((r) => parseAuthorization(r as Record<string, unknown>)) });
+  return c.json({
+    data: rows.map((r) => parseAuthorization(r as Record<string, unknown>)),
+    total: total.count,
+    limit,
+    offset,
+  });
 });
 
 authorizationRoutes.get('/authorizations/:id', (c) => {

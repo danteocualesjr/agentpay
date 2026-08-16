@@ -31,8 +31,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   agents: () => request<{ data: Agent[] }>('/v1/agents'),
-  authorizations: (status?: string) =>
-    request<{ data: Authorization[] }>(`/v1/authorizations${status ? `?status=${status}` : ''}`),
+  authorizations: (status?: string, limit = 100, offset = 0) => {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    params.set('limit', String(limit));
+    params.set('offset', String(offset));
+    return request<{ data: Authorization[]; total: number; limit: number; offset: number }>(
+      `/v1/authorizations?${params.toString()}`,
+    );
+  },
   ledger: (agentId: string) => request<{ data: LedgerEntry[] }>(`/v1/agents/${agentId}/ledger`),
   orgLedger: (limit = 100, offset = 0) =>
     request<{ data: LedgerEntry[]; total: number; limit: number; offset: number }>(
