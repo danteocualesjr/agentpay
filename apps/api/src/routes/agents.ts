@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { generateId, createAgentSchema } from '@agentpay/shared';
+import { generateId, createAgentSchema, updateAgentStatusSchema } from '@agentpay/shared';
 import { db } from '../db/index.js';
 
 type Org = { id: string; name: string; api_key: string; webhook_secret: string; created_at: string };
@@ -77,4 +77,23 @@ agentRoutes.get('/agents/:id/ledger', (c) => {
     .prepare('SELECT * FROM ledger_entries WHERE agent_id = ? ORDER BY created_at DESC')
     .all(agentId);
   return c.json({ data: entries });
+});
+
+agentRoutes.patch('/agents/:id', async (c) => {
+  const org = c.get('org') as Org;
+  const agentId = c.req.param('id');
+  const existing = db.prepare('SELECT * FROM agents WHERE id = ? AND org_id = ?').get(agentId, org.id);
+  if (!existing) {
+    return c.json({ error: { type: 'not_found', message: 'Agent not found' } }, 404);
+  }
+
+  const body = await c.req.json();
+  const parsed = updateAgentStatusSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: { type: 'invalid_request', message: parsed.error.message } }, 400);
+  }
+
+  db.prepare('UPDATE agents SET status = ? WHERE id = ?').run(parsed.data.status, agentId);
+  const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(agentId);
+  return c.json(parseAgent(agent as Record<string, unknown>));
 });

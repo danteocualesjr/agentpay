@@ -685,6 +685,21 @@ export default function App() {
     }
   }
 
+  async function toggleAgentStatus(agent: Agent) {
+    const next = agent.status === 'active' ? 'paused' : 'active';
+    setActionLoading(`status-${agent.id}`);
+    setError('');
+    try {
+      await api.updateAgentStatus(agent.id, next);
+      showToast(`${agent.name} ${next === 'active' ? 'resumed' : 'paused'}`);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update agent status');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function createAgent() {
     const name = newAgentName.trim();
     const budget = Number(newAgentBudget);
@@ -1407,6 +1422,7 @@ export default function App() {
                       <th>Approval threshold</th>
                       <th>Allowlist</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1437,6 +1453,22 @@ export default function App() {
                           </div>
                         </td>
                         <td><StatusBadge status={a.status} /></td>
+                        <td className="actions">
+                          {a.status !== 'disabled' && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-ghost"
+                              onClick={() => toggleAgentStatus(a)}
+                              disabled={actionLoading === `status-${a.id}`}
+                            >
+                              {actionLoading === `status-${a.id}`
+                                ? 'Updating…'
+                                : a.status === 'active'
+                                  ? 'Pause'
+                                  : 'Resume'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

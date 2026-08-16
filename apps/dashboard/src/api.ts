@@ -41,6 +41,8 @@ export const api = {
   capture: (id: string) => request<Authorization>(`/v1/authorizations/${id}/capture`, { method: 'POST' }),
   createAgent: (body: object) =>
     request<Agent>('/v1/agents', { method: 'POST', body: JSON.stringify(body) }),
+  updateAgentStatus: (id: string, status: string) =>
+    request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 };
 
 export interface Agent {
