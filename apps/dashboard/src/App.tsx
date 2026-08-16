@@ -309,7 +309,7 @@ function exportAuthorizationsCsv(items: Authorization[], agentNameFn: (id: strin
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'agentpay-authorizations.csv';
+  a.download = `agentpay-authorizations-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
