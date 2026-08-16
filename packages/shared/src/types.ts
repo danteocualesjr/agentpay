@@ -81,6 +81,8 @@ export interface PolicyInput {
   max_single_tx_cents: number;
   approval_threshold_cents: number;
   merchant_allowlist: string[];
+  requests_last_hour?: number;
+  max_requests_per_hour?: number;
 }
 
 export interface PolicyResult {

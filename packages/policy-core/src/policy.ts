@@ -28,7 +28,17 @@ export function evaluatePolicy(input: PolicyInput): PolicyResult {
     max_single_tx_cents,
     approval_threshold_cents,
     merchant_allowlist,
+    requests_last_hour = 0,
+    max_requests_per_hour = 60,
   } = input;
+
+  if (requests_last_hour >= max_requests_per_hour) {
+    return {
+      decision: 'blocked',
+      status: 'blocked',
+      message: `Velocity limit exceeded: ${requests_last_hour} requests in the last hour (max ${max_requests_per_hour})`,
+    };
+  }
 
   if (!merchantAllowed(merchant, merchant_allowlist)) {
     return {

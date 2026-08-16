@@ -88,6 +88,10 @@ authorizationRoutes.post('/agents/:id/authorize', async (c) => {
   const { amount_cents, merchant, reason, currency, metadata = {} } = parsed.data;
   const now = new Date().toISOString();
   const dailySpent = getDailyBudgetUsage(agentId, now);
+  const hourAgo = new Date(Date.now() - 3600000).toISOString();
+  const requestsLastHour = db
+    .prepare('SELECT COUNT(*) as count FROM authorizations WHERE agent_id = ? AND created_at >= ?')
+    .get(agentId, hourAgo) as { count: number };
 
   const policy = evaluatePolicy({
     amount_cents,
@@ -97,6 +101,8 @@ authorizationRoutes.post('/agents/:id/authorize', async (c) => {
     max_single_tx_cents: agent.max_single_tx_cents as number,
     approval_threshold_cents: agent.approval_threshold_cents as number,
     merchant_allowlist: agent.merchant_allowlist as string[],
+    requests_last_hour: requestsLastHour.count,
+    max_requests_per_hour: 60,
   });
 
   const id = generateId('authorization');
