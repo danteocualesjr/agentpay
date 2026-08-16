@@ -297,6 +297,23 @@ function groupLedgerByDate(entries: LedgerEntry[]) {
   return groups;
 }
 
+function exportAuthorizationsCsv(items: Authorization[], agentNameFn: (id: string) => string) {
+  const header = 'ID,Agent,Amount (USD),Merchant,Reason,Status,Policy,Created';
+  const rows = items.map((a) => {
+    const amount = (a.amount_cents / 100).toFixed(2);
+    const reason = `"${a.reason.replace(/"/g, '""')}"`;
+    const merchant = `"${a.merchant.replace(/"/g, '""')}"`;
+    return `${a.id},${agentNameFn(a.agent_id)},${amount},${merchant},${reason},${a.status},${a.policy_decision},${a.created_at}`;
+  });
+  const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'agentpay-authorizations.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function exportLedgerCsv(entries: LedgerEntry[], agentName: string) {
   const header = 'Timestamp,Event,Amount (USD),Description';
   const rows = entries.map((e) => {
@@ -434,6 +451,7 @@ export default function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [bulkCapturing, setBulkCapturing] = useState(false);
   const [showCreateAgent, setShowCreateAgent] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
   const [newAgentBudget, setNewAgentBudget] = useState('2500');
@@ -836,6 +854,22 @@ export default function App() {
       setError(e instanceof Error ? e.message : 'Failed to create agent');
     } finally {
       setCreatingAgent(false);
+    }
+  }
+
+  async function captureAllApproved() {
+    const approved = authorizations.filter((a) => a.status === 'approved');
+    if (approved.length === 0) return;
+    setBulkCapturing(true);
+    setError('');
+    try {
+      await Promise.all(approved.map((a) => api.capture(a.id)));
+      showToast(`Captured ${approved.length} authorization${approved.length !== 1 ? 's' : ''}`);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Bulk capture failed');
+    } finally {
+      setBulkCapturing(false);
     }
   }
 
@@ -1575,6 +1609,7 @@ export default function App() {
                     <tr>
                       <th>Agent</th>
                       <th>Daily budget</th>
+                      <th>Budget used</th>
                       <th>Approval threshold</th>
                       <th>Allowlist</th>
                       <th>Status</th>
@@ -1600,6 +1635,17 @@ export default function App() {
                           </div>
                         </td>
                         <td>{formatMoney(a.daily_budget_cents)}</td>
+                        <td>
+                          {(() => {
+                            const used = agentDailyBudgetUsage(authorizations, a.id);
+                            const pct = Math.min(100, (used / a.daily_budget_cents) * 100);
+                            return (
+                              <span className={`budget-pct budget-pct-${budgetBarLevel(pct)}`}>
+                                {formatMoney(used)} / {formatMoney(a.daily_budget_cents)}
+                              </span>
+                            );
+                          })()}
+                        </td>
                         <td>{formatMoney(a.approval_threshold_cents)}</td>
                         <td>
                           <div className="allowlist-tags">
@@ -1670,6 +1716,26 @@ export default function App() {
                       }}
                     >
                       Clear filters
+                    </button>
+                  )}
+                  {!initialLoad && filteredAuth.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => exportAuthorizationsCsv(filteredAuth, agentName)}
+                    >
+                      <IconDownload />
+                      Export CSV
+                    </button>
+                  )}
+                  {statusFilter === 'approved' && authorizations.some((a) => a.status === 'approved') && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={captureAllApproved}
+                      disabled={bulkCapturing}
+                    >
+                      {bulkCapturing ? 'Capturing…' : 'Capture all'}
                     </button>
                   )}
                 </div>
