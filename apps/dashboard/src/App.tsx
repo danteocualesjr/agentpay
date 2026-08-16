@@ -720,6 +720,20 @@ export default function App() {
     }
   }
 
+  async function deleteWebhook(endpoint: WebhookEndpoint) {
+    setActionLoading(`delete-webhook-${endpoint.id}`);
+    try {
+      await api.deleteWebhook(endpoint.id);
+      showToast('Webhook deleted');
+      const wh = await api.webhooks();
+      setWebhooks(wh.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete webhook');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function toggleWebhook(endpoint: WebhookEndpoint) {
     setActionLoading(`webhook-${endpoint.id}`);
     try {
@@ -1964,6 +1978,14 @@ export default function App() {
                               disabled={actionLoading === `webhook-${w.id}`}
                             >
                               {actionLoading === `webhook-${w.id}` ? 'Updating…' : w.enabled ? 'Disable' : 'Enable'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-danger"
+                              onClick={() => deleteWebhook(w)}
+                              disabled={actionLoading === `delete-webhook-${w.id}`}
+                            >
+                              Delete
                             </button>
                           </td>
                         </tr>

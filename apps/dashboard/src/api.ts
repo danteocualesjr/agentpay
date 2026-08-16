@@ -61,6 +61,8 @@ export const api = {
     request<WebhookEndpoint & { secret: string }>('/v1/webhook_endpoints', { method: 'POST', body: JSON.stringify(body) }),
   updateWebhook: (id: string, enabled: boolean) =>
     request<WebhookEndpoint>(`/v1/webhook_endpoints/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+  deleteWebhook: (id: string) =>
+    request<{ deleted: boolean; id: string }>(`/v1/webhook_endpoints/${id}`, { method: 'DELETE' }),
   organization: () => request<Organization>('/v1/organization'),
   authorization: (id: string) => request<Authorization>(`/v1/authorizations/${id}`),
 };

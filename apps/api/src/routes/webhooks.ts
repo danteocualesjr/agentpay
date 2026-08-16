@@ -62,3 +62,15 @@ webhookRoutes.patch('/webhook_endpoints/:id', async (c) => {
     enabled: (endpoint as { enabled: number }).enabled === 1,
   });
 });
+
+webhookRoutes.delete('/webhook_endpoints/:id', (c) => {
+  const org = c.get('org') as Org;
+  const id = c.req.param('id');
+  const result = db
+    .prepare('DELETE FROM webhook_endpoints WHERE id = ? AND org_id = ?')
+    .run(id, org.id);
+  if (result.changes === 0) {
+    return c.json({ error: { type: 'not_found', message: 'Webhook endpoint not found' } }, 404);
+  }
+  return c.json({ deleted: true, id });
+});
