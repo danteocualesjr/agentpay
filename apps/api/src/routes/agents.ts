@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { generateId, createAgentSchema, updateAgentSchema } from '@agentpay/shared';
 import { db } from '../db/index.js';
+import { getAgentSpendStats } from '../services/budget.js';
 
 type Org = { id: string; name: string; api_key: string; webhook_secret: string; created_at: string };
 
@@ -63,6 +64,19 @@ agentRoutes.get('/agents/:id', (c) => {
     return c.json({ error: { type: 'not_found', message: 'Agent not found' } }, 404);
   }
   return c.json(parseAgent(row as Record<string, unknown>));
+});
+
+agentRoutes.get('/agents/:id/spend', (c) => {
+  const org = c.get('org') as Org;
+  const agentId = c.req.param('id');
+  const row = db.prepare('SELECT * FROM agents WHERE id = ? AND org_id = ?').get(agentId, org.id) as
+    | Record<string, unknown>
+    | undefined;
+  if (!row) {
+    return c.json({ error: { type: 'not_found', message: 'Agent not found' } }, 404);
+  }
+  const stats = getAgentSpendStats(agentId, row.daily_budget_cents as number, new Date().toISOString());
+  return c.json(stats);
 });
 
 agentRoutes.get('/agents/:id/ledger', (c) => {

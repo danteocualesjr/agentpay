@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
-import { evaluatePolicy, getDayStart } from '@agentpay/policy-core';
+import { evaluatePolicy } from '@agentpay/policy-core';
 import { authorizeSpendSchema, generateId } from '@agentpay/shared';
 import { db } from '../db/index.js';
 import { appendLedger, dispatchWebhook } from '../services/webhooks.js';
+import { getDailyBudgetUsage } from '../services/budget.js';
 
 type Org = { id: string; name: string; api_key: string; webhook_secret: string; created_at: string };
 
@@ -11,33 +12,6 @@ function parseAuthorization(row: Record<string, unknown>) {
     ...row,
     metadata: JSON.parse((row.metadata as string) ?? '{}'),
   };
-}
-
-function getDailyCaptured(agentId: string, now: string): number {
-  const dayStart = getDayStart(now);
-  const row = db
-    .prepare(
-      `SELECT COALESCE(SUM(amount_cents), 0) as total FROM authorizations
-       WHERE agent_id = ? AND status = 'captured' AND captured_at >= ?`,
-    )
-    .get(agentId, dayStart) as { total: number };
-  return row.total;
-}
-
-function getOutstandingCommitments(agentId: string, excludeAuthorizationId?: string): number {
-  let query = `SELECT COALESCE(SUM(amount_cents), 0) as total FROM authorizations
-     WHERE agent_id = ? AND status IN ('approved', 'pending')`;
-  const params: string[] = [agentId];
-  if (excludeAuthorizationId) {
-    query += ' AND id != ?';
-    params.push(excludeAuthorizationId);
-  }
-  const row = db.prepare(query).get(...params) as { total: number };
-  return row.total;
-}
-
-function getDailyBudgetUsage(agentId: string, now: string, excludeAuthorizationId?: string): number {
-  return getDailyCaptured(agentId, now) + getOutstandingCommitments(agentId, excludeAuthorizationId);
 }
 
 function getAgent(orgId: string, agentId: string) {
