@@ -69,4 +69,15 @@ describe('evaluatePolicy', () => {
     });
     assert.equal(result.status, 'blocked');
   });
+
+  it('blocks when velocity limit exceeded', () => {
+    const result = evaluatePolicy({
+      ...base,
+      amount_cents: 100,
+      merchant: 'api.search.io',
+      requests_last_hour: 60,
+      max_requests_per_hour: 60,
+    });
+    assert.equal(result.status, 'blocked');
+  });
 });
