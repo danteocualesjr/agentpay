@@ -43,6 +43,8 @@ export const api = {
     request<Agent>('/v1/agents', { method: 'POST', body: JSON.stringify(body) }),
   updateAgentStatus: (id: string, status: string) =>
     request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  updateAgent: (id: string, body: object) =>
+    request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 };
 
 export interface Agent {

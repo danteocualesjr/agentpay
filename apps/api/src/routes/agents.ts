@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { generateId, createAgentSchema, updateAgentStatusSchema } from '@agentpay/shared';
+import { generateId, createAgentSchema, updateAgentSchema } from '@agentpay/shared';
 import { db } from '../db/index.js';
 
 type Org = { id: string; name: string; api_key: string; webhook_secret: string; created_at: string };
@@ -88,12 +88,42 @@ agentRoutes.patch('/agents/:id', async (c) => {
   }
 
   const body = await c.req.json();
-  const parsed = updateAgentStatusSchema.safeParse(body);
+  const parsed = updateAgentSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: { type: 'invalid_request', message: parsed.error.message } }, 400);
   }
 
-  db.prepare('UPDATE agents SET status = ? WHERE id = ?').run(parsed.data.status, agentId);
+  const updates = parsed.data;
+  const fields: string[] = [];
+  const values: unknown[] = [];
+
+  if (updates.status !== undefined) {
+    fields.push('status = ?');
+    values.push(updates.status);
+  }
+  if (updates.daily_budget_cents !== undefined) {
+    fields.push('daily_budget_cents = ?');
+    values.push(updates.daily_budget_cents);
+  }
+  if (updates.max_single_tx_cents !== undefined) {
+    fields.push('max_single_tx_cents = ?');
+    values.push(updates.max_single_tx_cents);
+  }
+  if (updates.approval_threshold_cents !== undefined) {
+    fields.push('approval_threshold_cents = ?');
+    values.push(updates.approval_threshold_cents);
+  }
+  if (updates.merchant_allowlist !== undefined) {
+    fields.push('merchant_allowlist = ?');
+    values.push(JSON.stringify(updates.merchant_allowlist));
+  }
+
+  if (fields.length === 0) {
+    return c.json({ error: { type: 'invalid_request', message: 'No fields to update' } }, 400);
+  }
+
+  values.push(agentId);
+  db.prepare(`UPDATE agents SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(agentId);
   return c.json(parseAgent(agent as Record<string, unknown>));
 });

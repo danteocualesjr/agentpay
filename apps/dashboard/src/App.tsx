@@ -427,6 +427,11 @@ export default function App() {
   const [newAgentBudget, setNewAgentBudget] = useState('2500');
   const [newAgentAllowlist, setNewAgentAllowlist] = useState('');
   const [creatingAgent, setCreatingAgent] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [editBudget, setEditBudget] = useState('');
+  const [editThreshold, setEditThreshold] = useState('');
+  const [editAllowlist, setEditAllowlist] = useState('');
+  const [savingAgent, setSavingAgent] = useState(false);
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -682,6 +687,38 @@ export default function App() {
       setLedger(led.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load ledger');
+    }
+  }
+
+  function openEditAgent(agent: Agent) {
+    setEditingAgent(agent);
+    setEditBudget(String(agent.daily_budget_cents));
+    setEditThreshold(String(agent.approval_threshold_cents));
+    setEditAllowlist(agent.merchant_allowlist.join(', '));
+  }
+
+  async function saveAgentSettings() {
+    if (!editingAgent) return;
+    const daily_budget_cents = Number(editBudget);
+    const approval_threshold_cents = Number(editThreshold);
+    if (!Number.isInteger(daily_budget_cents) || daily_budget_cents <= 0) return;
+    if (!Number.isInteger(approval_threshold_cents) || approval_threshold_cents < 0) return;
+    setSavingAgent(true);
+    setError('');
+    try {
+      const merchant_allowlist = editAllowlist.split(',').map((s) => s.trim()).filter(Boolean);
+      await api.updateAgent(editingAgent.id, {
+        daily_budget_cents,
+        approval_threshold_cents,
+        merchant_allowlist,
+      });
+      showToast(`Updated ${editingAgent.name}`);
+      setEditingAgent(null);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update agent');
+    } finally {
+      setSavingAgent(false);
     }
   }
 
@@ -1413,6 +1450,23 @@ export default function App() {
                   </button>
                 </div>
               )}
+              {editingAgent && (
+                <div className="form-card create-agent-form">
+                  <h3>Edit {editingAgent.name}</h3>
+                  <label className="field-label" htmlFor="edit-budget">Daily budget (cents)</label>
+                  <input id="edit-budget" className="field-input" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} />
+                  <label className="field-label" htmlFor="edit-threshold">Approval threshold (cents)</label>
+                  <input id="edit-threshold" className="field-input" value={editThreshold} onChange={(e) => setEditThreshold(e.target.value)} />
+                  <label className="field-label" htmlFor="edit-allowlist">Merchant allowlist</label>
+                  <input id="edit-allowlist" className="field-input" value={editAllowlist} onChange={(e) => setEditAllowlist(e.target.value)} />
+                  <div className="confirm-actions">
+                    <button type="button" className="btn btn-ghost" onClick={() => setEditingAgent(null)}>Cancel</button>
+                    <button type="button" className="btn btn-primary" onClick={saveAgentSettings} disabled={savingAgent}>
+                      {savingAgent ? 'Saving…' : 'Save changes'}
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="table-card">
                 <table>
                   <thead>
@@ -1454,6 +1508,7 @@ export default function App() {
                         </td>
                         <td><StatusBadge status={a.status} /></td>
                         <td className="actions">
+                          <button type="button" className="btn btn-sm btn-ghost" onClick={() => openEditAgent(a)}>Edit</button>
                           {a.status !== 'disabled' && (
                             <button
                               type="button"

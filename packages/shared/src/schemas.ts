@@ -23,3 +23,11 @@ export const createWebhookEndpointSchema = z.object({
 export const updateAgentStatusSchema = z.object({
   status: z.enum(['active', 'paused', 'disabled']),
 });
+
+export const updateAgentSchema = z.object({
+  status: z.enum(['active', 'paused', 'disabled']).optional(),
+  daily_budget_cents: z.number().int().positive().optional(),
+  max_single_tx_cents: z.number().int().positive().optional(),
+  approval_threshold_cents: z.number().int().nonnegative().optional(),
+  merchant_allowlist: z.array(z.string().min(1)).optional(),
+});
