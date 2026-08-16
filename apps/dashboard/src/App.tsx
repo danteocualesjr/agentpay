@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, clearApiKey, getApiKey, setApiKey, type Agent, type Authorization, type LedgerEntry, type Organization, type WebhookEndpoint } from './api';
+import { api, clearApiKey, getApiKey, getTheme, initTheme, setApiKey, setTheme, type Agent, type Authorization, type LedgerEntry, type Organization, type WebhookEndpoint } from './api';
 import {
   IconAgents,
   IconClose,
@@ -471,6 +471,7 @@ export default function App() {
   const [authPage, setAuthPage] = useState(0);
   const [authTotal, setAuthTotal] = useState(0);
   const [detailAuth, setDetailAuth] = useState<Authorization | null>(null);
+  const [theme, setThemeState] = useState<'dark' | 'light'>(getTheme());
   const AUTH_PAGE_SIZE = 25;
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -510,6 +511,10 @@ export default function App() {
       setLastRefreshed(new Date());
     }
   }, [selectedAgent, authPage]);
+
+  useEffect(() => {
+    initTheme();
+  }, []);
 
   useEffect(() => {
     if (apiKey) refresh();
@@ -782,6 +787,21 @@ export default function App() {
       setError(e instanceof Error ? e.message : 'Failed to create webhook');
     } finally {
       setCreatingWebhook(false);
+    }
+  }
+
+  async function deleteAgent(agent: Agent) {
+    if (!confirm(`Disable agent "${agent.name}"? This cannot be undone if the agent has open authorizations.`)) return;
+    setActionLoading(`delete-${agent.id}`);
+    setError('');
+    try {
+      await api.deleteAgent(agent.id);
+      showToast(`Agent "${agent.name}" disabled`);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete agent');
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -1658,6 +1678,7 @@ export default function App() {
                         <td className="actions">
                           <button type="button" className="btn btn-sm btn-ghost" onClick={() => openEditAgent(a)}>Edit</button>
                           {a.status !== 'disabled' && (
+                            <>
                             <button
                               type="button"
                               className="btn btn-sm btn-ghost"
@@ -1670,6 +1691,15 @@ export default function App() {
                                   ? 'Pause'
                                   : 'Resume'}
                             </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-danger"
+                              onClick={() => deleteAgent(a)}
+                              disabled={actionLoading === `delete-${a.id}`}
+                            >
+                              Delete
+                            </button>
+                            </>
                           )}
                         </td>
                       </tr>
@@ -2080,6 +2110,19 @@ export default function App() {
                 <button type="button" className="btn btn-ghost sign-out-btn" onClick={signOut} style={{ marginTop: 16 }}>
                   <IconLogout />
                   Sign out
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ marginTop: 8 }}
+                  onClick={() => {
+                    const next = theme === 'dark' ? 'light' : 'dark';
+                    setTheme(next);
+                    setThemeState(next);
+                    showToast(`${next === 'light' ? 'Light' : 'Dark'} theme enabled`);
+                  }}
+                >
+                  Switch to {theme === 'dark' ? 'light' : 'dark'} theme
                 </button>
               </div>
             </div>

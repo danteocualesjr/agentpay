@@ -1,3 +1,19 @@
+const THEME_STORAGE = 'agentpay_theme';
+
+export function getTheme(): 'dark' | 'light' {
+  const stored = localStorage.getItem(THEME_STORAGE);
+  return stored === 'light' ? 'light' : 'dark';
+}
+
+export function setTheme(theme: 'dark' | 'light') {
+  localStorage.setItem(THEME_STORAGE, theme);
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+export function initTheme() {
+  document.documentElement.setAttribute('data-theme', getTheme());
+}
+
 const API_KEY_STORAGE = 'agentpay_api_key';
 
 export function getApiKey(): string {

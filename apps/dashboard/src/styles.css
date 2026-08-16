@@ -36,6 +36,22 @@
   --font-body: 'Inter', system-ui, sans-serif;
 }
 
+[data-theme='light'] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-high: #f1f5f9;
+  --surface-bright: #e2e8f0;
+  --text: #0f172a;
+  --text-secondary: #334155;
+  --muted: #64748b;
+  --border: #cbd5e1;
+  --border-light: #e2e8f0;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 8px 32px rgba(15, 23, 42, 0.12);
+  --neutral-bg: #e2e8f0;
+  --neutral-text: #64748b;
+}
+
 * { box-sizing: border-box; }
 
 body {
