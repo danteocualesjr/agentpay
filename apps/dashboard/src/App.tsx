@@ -452,6 +452,7 @@ export default function App() {
   const [ledgerScope, setLedgerScope] = useState<'agent' | 'org'>('agent');
   const [authPage, setAuthPage] = useState(0);
   const [authTotal, setAuthTotal] = useState(0);
+  const [detailAuth, setDetailAuth] = useState<Authorization | null>(null);
   const AUTH_PAGE_SIZE = 25;
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -860,6 +861,31 @@ export default function App() {
             <IconClose />
           </button>
           <div className="toast-progress" aria-hidden="true" />
+        </div>
+      )}
+
+      {detailAuth && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="detail-title" onClick={() => setDetailAuth(null)}>
+          <div className="shortcuts-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="shortcuts-header">
+              <h3 id="detail-title">Authorization details</h3>
+              <button type="button" className="alert-dismiss" onClick={() => setDetailAuth(null)} aria-label="Close">
+                <IconClose />
+              </button>
+            </div>
+            <dl className="settings-list">
+              <div><dt>ID</dt><dd><code>{detailAuth.id}</code></dd></div>
+              <div><dt>Agent</dt><dd>{agentName(detailAuth.agent_id)}</dd></div>
+              <div><dt>Amount</dt><dd>{formatMoney(detailAuth.amount_cents)}</dd></div>
+              <div><dt>Merchant</dt><dd>{detailAuth.merchant}</dd></div>
+              <div><dt>Reason</dt><dd>{detailAuth.reason}</dd></div>
+              <div><dt>Status</dt><dd><StatusBadge status={detailAuth.status} /></dd></div>
+              <div><dt>Policy</dt><dd>{detailAuth.policy_message}</dd></div>
+              <div><dt>Created</dt><dd>{formatDate(detailAuth.created_at)}</dd></div>
+              {detailAuth.approved_at && <div><dt>Approved</dt><dd>{formatDate(detailAuth.approved_at)}</dd></div>}
+              {detailAuth.captured_at && <div><dt>Captured</dt><dd>{formatDate(detailAuth.captured_at)}</dd></div>}
+            </dl>
+          </div>
         </div>
       )}
 
@@ -1655,7 +1681,7 @@ export default function App() {
                         </tr>
                       ) : (
                         filteredAuth.map((a) => (
-                          <tr key={a.id} className={`auth-row auth-row-${a.status}`}>
+                          <tr key={a.id} className={`auth-row auth-row-${a.status} auth-row-clickable`} onClick={() => setDetailAuth(a)}>
                             <td><strong>{formatMoney(a.amount_cents)}</strong></td>
                             <td>
                               <div className="agent-cell agent-cell-compact">
@@ -1684,14 +1710,14 @@ export default function App() {
                                 <>
                                   <button
                                     className="btn btn-sm btn-primary"
-                                    onClick={() => handleAction('approve', a.id)}
+                                    onClick={(e) => { e.stopPropagation(); handleAction('approve', a.id); }}
                                     disabled={actionLoading === `approve-${a.id}`}
                                   >
                                     {actionLoading === `approve-${a.id}` ? 'Approving…' : 'Approve'}
                                   </button>
                                   <button
                                     className="btn btn-sm btn-ghost"
-                                    onClick={() => setConfirmDenyId(a.id)}
+                                    onClick={(e) => { e.stopPropagation(); setConfirmDenyId(a.id); }}
                                     disabled={actionLoading === `deny-${a.id}`}
                                   >
                                     Deny
@@ -1701,7 +1727,7 @@ export default function App() {
                               {a.status === 'approved' && (
                                 <button
                                   className="btn btn-sm btn-primary"
-                                  onClick={() => setConfirmCaptureId(a.id)}
+                                  onClick={(e) => { e.stopPropagation(); setConfirmCaptureId(a.id); }}
                                   disabled={actionLoading === `capture-${a.id}`}
                                 >
                                   Capture

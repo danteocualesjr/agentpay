@@ -1658,6 +1658,9 @@ tbody tr:last-child td { border-bottom: none; }
 .auth-row-blocked td:first-child,
 .auth-row-denied td:first-child { border-left-color: var(--danger-text); }
 
+.auth-row-clickable { cursor: pointer; }
+.auth-row-clickable:hover { background: rgba(0, 102, 255, 0.04); }
+
 /* Badges */
 
 .badge {
