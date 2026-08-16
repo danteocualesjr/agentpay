@@ -72,6 +72,8 @@ export const api = {
     request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   updateAgent: (id: string, body: object) =>
     request<Agent>(`/v1/agents/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteAgent: (id: string) =>
+    request<{ deleted: boolean; id: string; status: string }>(`/v1/agents/${id}`, { method: 'DELETE' }),
   webhooks: () => request<{ data: WebhookEndpoint[] }>('/v1/webhook_endpoints'),
   createWebhook: (body: object) =>
     request<WebhookEndpoint & { secret: string }>('/v1/webhook_endpoints', { method: 'POST', body: JSON.stringify(body) }),

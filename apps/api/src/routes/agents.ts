@@ -141,3 +141,20 @@ agentRoutes.patch('/agents/:id', async (c) => {
   const agent = db.prepare('SELECT * FROM agents WHERE id = ?').get(agentId);
   return c.json(parseAgent(agent as Record<string, unknown>));
 });
+
+agentRoutes.delete('/agents/:id', (c) => {
+  const org = c.get('org') as Org;
+  const agentId = c.req.param('id');
+  const existing = db.prepare('SELECT * FROM agents WHERE id = ? AND org_id = ?').get(agentId, org.id);
+  if (!existing) {
+    return c.json({ error: { type: 'not_found', message: 'Agent not found' } }, 404);
+  }
+  const pending = db
+    .prepare("SELECT COUNT(*) as count FROM authorizations WHERE agent_id = ? AND status IN ('pending', 'approved')")
+    .get(agentId) as { count: number };
+  if (pending.count > 0) {
+    return c.json({ error: { type: 'invalid_request', message: 'Cannot delete agent with pending or approved authorizations' } }, 400);
+  }
+  db.prepare('UPDATE agents SET status = ? WHERE id = ?').run('disabled', agentId);
+  return c.json({ deleted: true, id: agentId, status: 'disabled' });
+});

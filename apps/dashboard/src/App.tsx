@@ -790,22 +790,7 @@ export default function App() {
     }
   }
 
-  async function deleteAgent(agent: Agent) {
-    if (!confirm(`Disable agent "${agent.name}"? This cannot be undone if the agent has open authorizations.`)) return;
-    setActionLoading(`delete-${agent.id}`);
-    setError('');
-    try {
-      await api.deleteAgent(agent.id);
-      showToast(`Agent "${agent.name}" disabled`);
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to delete agent');
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  function openEditAgent(agent: Agent) {
+  async function toggleAgentStatus(agent: Agent) {
     setEditingAgent(agent);
     setEditBudget(String(agent.daily_budget_cents));
     setEditThreshold(String(agent.approval_threshold_cents));
@@ -1679,26 +1664,26 @@ export default function App() {
                           <button type="button" className="btn btn-sm btn-ghost" onClick={() => openEditAgent(a)}>Edit</button>
                           {a.status !== 'disabled' && (
                             <>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-ghost"
-                              onClick={() => toggleAgentStatus(a)}
-                              disabled={actionLoading === `status-${a.id}`}
-                            >
-                              {actionLoading === `status-${a.id}`
-                                ? 'Updating…'
-                                : a.status === 'active'
-                                  ? 'Pause'
-                                  : 'Resume'}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-danger"
-                              onClick={() => deleteAgent(a)}
-                              disabled={actionLoading === `delete-${a.id}`}
-                            >
-                              Delete
-                            </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => toggleAgentStatus(a)}
+                                disabled={actionLoading === `status-${a.id}`}
+                              >
+                                {actionLoading === `status-${a.id}`
+                                  ? 'Updating…'
+                                  : a.status === 'active'
+                                    ? 'Pause'
+                                    : 'Resume'}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-danger"
+                                onClick={() => deleteAgent(a)}
+                                disabled={actionLoading === `delete-${a.id}`}
+                              >
+                                Delete
+                              </button>
                             </>
                           )}
                         </td>
