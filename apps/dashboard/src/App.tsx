@@ -1735,7 +1735,7 @@ export default function App() {
                       onClick={captureAllApproved}
                       disabled={bulkCapturing}
                     >
-                      {bulkCapturing ? 'Capturing…' : 'Capture all'}
+                      {bulkCapturing ? 'Capturing…' : `Capture all (${authorizations.filter((a) => a.status === 'approved').length})`}
                     </button>
                   )}
                 </div>
