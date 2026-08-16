@@ -422,6 +422,11 @@ export default function App() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [showCreateAgent, setShowCreateAgent] = useState(false);
+  const [newAgentName, setNewAgentName] = useState('');
+  const [newAgentBudget, setNewAgentBudget] = useState('2500');
+  const [newAgentAllowlist, setNewAgentAllowlist] = useState('');
+  const [creatingAgent, setCreatingAgent] = useState(false);
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -677,6 +682,31 @@ export default function App() {
       setLedger(led.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load ledger');
+    }
+  }
+
+  async function createAgent() {
+    const name = newAgentName.trim();
+    const budget = Number(newAgentBudget);
+    if (!name || !Number.isInteger(budget) || budget <= 0) return;
+    setCreatingAgent(true);
+    setError('');
+    try {
+      const allowlist = newAgentAllowlist
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      await api.createAgent({ name, daily_budget_cents: budget, merchant_allowlist: allowlist });
+      showToast(`Agent "${name}" created`);
+      setShowCreateAgent(false);
+      setNewAgentName('');
+      setNewAgentBudget('2500');
+      setNewAgentAllowlist('');
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create agent');
+    } finally {
+      setCreatingAgent(false);
     }
   }
 
@@ -1325,6 +1355,49 @@ export default function App() {
             initialLoad ? (
               <TableSkeleton cols={5} />
             ) : (
+              <>
+              <div className="agents-toolbar">
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowCreateAgent((v) => !v)}>
+                  {showCreateAgent ? 'Cancel' : 'Create agent'}
+                </button>
+              </div>
+              {showCreateAgent && (
+                <div className="form-card create-agent-form">
+                  <h3>New agent</h3>
+                  <label className="field-label" htmlFor="new-agent-name">Name</label>
+                  <input
+                    id="new-agent-name"
+                    className="field-input"
+                    value={newAgentName}
+                    onChange={(e) => setNewAgentName(e.target.value)}
+                    placeholder="Support Bot"
+                  />
+                  <label className="field-label" htmlFor="new-agent-budget">Daily budget (cents)</label>
+                  <input
+                    id="new-agent-budget"
+                    className="field-input"
+                    value={newAgentBudget}
+                    onChange={(e) => setNewAgentBudget(e.target.value)}
+                    placeholder="2500"
+                  />
+                  <label className="field-label" htmlFor="new-agent-allowlist">Merchant allowlist (comma-separated)</label>
+                  <input
+                    id="new-agent-allowlist"
+                    className="field-input"
+                    value={newAgentAllowlist}
+                    onChange={(e) => setNewAgentAllowlist(e.target.value)}
+                    placeholder="api.search.io, *.stripe.com"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={createAgent}
+                    disabled={creatingAgent || !newAgentName.trim()}
+                  >
+                    {creatingAgent ? 'Creating…' : 'Create agent'}
+                  </button>
+                </div>
+              )}
               <div className="table-card">
                 <table>
                   <thead>
@@ -1369,6 +1442,7 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+              </>
             )
           )}
 

@@ -2165,6 +2165,18 @@ tbody tr:last-child td { border-bottom: none; }
   white-space: nowrap;
 }
 
+/* Agents */
+
+.agents-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.create-agent-form {
+  margin-bottom: 16px;
+}
+
 /* Simulate */
 
 .simulate-layout {
