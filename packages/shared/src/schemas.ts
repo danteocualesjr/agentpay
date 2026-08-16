@@ -20,6 +20,10 @@ export const createWebhookEndpointSchema = z.object({
   url: z.string().url(),
 });
 
+export const updateWebhookEndpointSchema = z.object({
+  enabled: z.boolean(),
+});
+
 export const updateAgentStatusSchema = z.object({
   status: z.enum(['active', 'paused', 'disabled']),
 });

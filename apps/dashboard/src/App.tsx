@@ -720,6 +720,20 @@ export default function App() {
     }
   }
 
+  async function toggleWebhook(endpoint: WebhookEndpoint) {
+    setActionLoading(`webhook-${endpoint.id}`);
+    try {
+      await api.updateWebhook(endpoint.id, !endpoint.enabled);
+      showToast(`Webhook ${endpoint.enabled ? 'disabled' : 'enabled'}`);
+      const wh = await api.webhooks();
+      setWebhooks(wh.data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to update webhook');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function createWebhook() {
     const url = webhookUrl.trim();
     if (!url) return;
@@ -1926,12 +1940,13 @@ export default function App() {
                       <th>URL</th>
                       <th>Status</th>
                       <th>Created</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {webhooks.length === 0 ? (
                       <tr>
-                        <td colSpan={3}>
+                        <td colSpan={4}>
                           <EmptyState title="No webhooks configured" description="Add an endpoint to receive authorization and spend events." />
                         </td>
                       </tr>
@@ -1941,6 +1956,16 @@ export default function App() {
                           <td className="cell-truncate" title={w.url}>{w.url}</td>
                           <td><StatusBadge status={w.enabled ? 'active' : 'disabled'} /></td>
                           <td className="muted">{formatRelative(w.created_at)}</td>
+                          <td className="actions">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-ghost"
+                              onClick={() => toggleWebhook(w)}
+                              disabled={actionLoading === `webhook-${w.id}`}
+                            >
+                              {actionLoading === `webhook-${w.id}` ? 'Updating…' : w.enabled ? 'Disable' : 'Enable'}
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
