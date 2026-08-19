@@ -1650,7 +1650,13 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {agents.map((a) => (
+                    {filteredAgents.length === 0 ? (
+                      <tr>
+                        <td colSpan={7}>
+                          <EmptyState title="No matching agents" description="Try a different search term." />
+                        </td>
+                      </tr>
+                    ) : filteredAgents.map((a) => (
                       <tr key={a.id}>
                         <td>
                           <div className="agent-cell">
@@ -2114,7 +2120,24 @@ export default function App() {
                   <dl className="settings-list">
                     <div><dt>Name</dt><dd>{organization.name}</dd></div>
                     <div><dt>Organization ID</dt><dd><code>{organization.id}</code></dd></div>
-                    <div><dt>API key</dt><dd><code>{organization.api_key_preview}</code></dd></div>
+                    <div><dt>API key</dt><dd>
+                      <code>{organization.api_key_preview}</code>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        style={{ marginLeft: 8 }}
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(getApiKey());
+                            showToast('API key copied');
+                          } catch {
+                            showToast('Could not copy API key', 'error');
+                          }
+                        }}
+                      >
+                        Copy full key
+                      </button>
+                    </dd></div>
                     <div><dt>Created</dt><dd>{formatDate(organization.created_at)}</dd></div>
                   </dl>
                 ) : (
