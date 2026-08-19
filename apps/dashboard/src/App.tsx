@@ -472,6 +472,7 @@ export default function App() {
   const [authTotal, setAuthTotal] = useState(0);
   const [detailAuth, setDetailAuth] = useState<Authorization | null>(null);
   const [theme, setThemeState] = useState<'dark' | 'light'>(getTheme());
+  const [agentSearch, setAgentSearch] = useState('');
   const AUTH_PAGE_SIZE = 25;
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -928,6 +929,11 @@ export default function App() {
   const simAmountPreview = Number(simAmount) > 0 ? formatMoney(Number(simAmount)) : null;
   const hasActiveFilters = statusFilter !== 'all' || search.length > 0;
   const showSearchKbd = !search && !searchFocused;
+  const filteredAgents = agents.filter((a) => {
+    const q = agentSearch.toLowerCase();
+    if (!q) return true;
+    return a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q) || a.status.includes(q);
+  });
 
   return (
     <div className="shell">
@@ -1565,6 +1571,13 @@ export default function App() {
             ) : (
               <>
               <div className="agents-toolbar">
+                <input
+                  className="field-input agents-search"
+                  placeholder="Search agents…"
+                  value={agentSearch}
+                  onChange={(e) => setAgentSearch(e.target.value)}
+                  aria-label="Search agents"
+                />
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowCreateAgent((v) => !v)}>
                   {showCreateAgent ? 'Cancel' : 'Create agent'}
                 </button>

@@ -2251,7 +2251,15 @@ tbody tr:last-child td { border-bottom: none; }
 .agents-toolbar {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.agents-search {
+  flex: 1;
+  max-width: 280px;
+  margin-right: auto;
 }
 
 .create-agent-form {
