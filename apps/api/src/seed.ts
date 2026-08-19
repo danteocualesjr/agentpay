@@ -32,6 +32,26 @@ db.prepare(
   now,
 );
 
+function insertAuth(
+  status: string,
+  decision: string,
+  amount: number,
+  merchant: string,
+  reason: string,
+  message: string,
+) {
+  const authId = generateId('authorization');
+  const approvedAt = status === 'approved' ? now : null;
+  db.prepare(
+    `INSERT INTO authorizations (id, org_id, agent_id, amount_cents, currency, merchant, reason, status, policy_decision, policy_message, metadata, created_at, approved_at, captured_at)
+     VALUES (?, ?, ?, ?, 'usd', ?, ?, ?, ?, ?, '{}', ?, ?, NULL)`,
+  ).run(authId, orgId, agentId, amount, merchant, reason, status, decision, message, now, approvedAt);
+}
+
+insertAuth('approved', 'auto_approved', 499, 'api.search.io', 'Demo search query', 'Within policy limits');
+insertAuth('pending', 'requires_approval', 8900, 'datasets.io', 'Demo dataset download', 'Amount exceeds approval threshold');
+insertAuth('blocked', 'blocked', 20000, 'unknown.shop', 'Demo blocked purchase', 'Merchant not on allowlist');
+
 console.log('\n=== AgentPay Seed Complete ===');
 console.log('API Key:', apiKey);
 console.log('Organization ID:', orgId);
