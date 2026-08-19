@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, clearApiKey, getApiKey, getTheme, initTheme, setApiKey, setTheme, type Agent, type Authorization, type LedgerEntry, type Organization, type WebhookEndpoint } from './api';
+import { api, clearApiKey, getApiKey, getTheme, initTheme, setApiKey, setTheme, type Agent, type Authorization, type LedgerEntry, type Organization, type OrgStats, type WebhookEndpoint } from './api';
 import {
   IconAgents,
   IconClose,
@@ -150,6 +150,13 @@ function getDayStartUtc(iso: string): string {
   const d = new Date(iso);
   d.setUTCHours(0, 0, 0, 0);
   return d.toISOString();
+}
+
+function agentLastActivity(authorizations: Authorization[], agentId: string): string | null {
+  const latest = authorizations
+    .filter((a) => a.agent_id === agentId)
+    .sort((x, y) => y.created_at.localeCompare(x.created_at))[0];
+  return latest?.created_at ?? null;
 }
 
 function agentDailyBudgetUsage(authorizations: Authorization[], agentId: string): number {
@@ -478,6 +485,8 @@ export default function App() {
   const [creatingWebhook, setCreatingWebhook] = useState(false);
   const [newWebhookSecret, setNewWebhookSecret] = useState<string | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [orgStats, setOrgStats] = useState<OrgStats | null>(null);
+  const [confirmBulkApprove, setConfirmBulkApprove] = useState(false);
   const [ledgerScope, setLedgerScope] = useState<'agent' | 'org'>('agent');
   const [authPage, setAuthPage] = useState(0);
   const [authTotal, setAuthTotal] = useState(0);
@@ -501,17 +510,19 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      const [a, authz, wh, org] = await Promise.all([
+      const [a, authz, wh, org, stats] = await Promise.all([
         api.agents(),
         api.authorizations(undefined, AUTH_PAGE_SIZE, authPage * AUTH_PAGE_SIZE),
         api.webhooks(),
         api.organization(),
+        api.stats(),
       ]);
       setAgents(a.data);
       setAuthorizations(authz.data);
       setAuthTotal(authz.total);
       setWebhooks(wh.data);
       setOrganization(org);
+      setOrgStats(stats);
       const agentId = selectedAgent || a.data[0]?.id;
       if (agentId) {
         setSelectedAgent(agentId);
@@ -736,6 +747,14 @@ export default function App() {
     }
   }
 
+  const simDuplicate = authorizations.some(
+    (a) =>
+      a.agent_id === selectedAgent &&
+      a.merchant === simMerchant &&
+      a.amount_cents === Number(simAmount) &&
+      (a.status === 'pending' || a.status === 'approved'),
+  );
+
   async function simulateSpend() {
     if (!selectedAgent) return;
     setError('');
@@ -776,6 +795,18 @@ export default function App() {
       setLedger(led.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load ledger');
+    }
+  }
+
+  async function testWebhook(endpoint: WebhookEndpoint) {
+    setActionLoading(`test-webhook-${endpoint.id}`);
+    try {
+      await api.testWebhook(endpoint.id);
+      showToast('Test ping sent');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Webhook test failed');
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -986,6 +1017,29 @@ export default function App() {
             <IconClose />
           </button>
           <div className="toast-progress" aria-hidden="true" />
+        </div>
+      )}
+
+      {confirmBulkApprove && (
+        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="bulk-approve-title">
+          <div className="confirm-dialog">
+            <h3 id="bulk-approve-title">Approve all pending?</h3>
+            <p>This will approve {pending.length} pending authorization{pending.length !== 1 ? 's' : ''}.</p>
+            <div className="confirm-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setConfirmBulkApprove(false)}>Cancel</button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={async () => {
+                  setConfirmBulkApprove(false);
+                  await approveAllPending();
+                }}
+                disabled={bulkApproving}
+              >
+                {bulkApproving ? 'Approving…' : 'Approve all'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1314,7 +1368,7 @@ export default function App() {
                 <button
                   type="button"
                   className="btn btn-sm btn-ghost"
-                  onClick={approveAllPending}
+                  onClick={() => setConfirmBulkApprove(true)}
                   disabled={bulkApproving}
                 >
                   {bulkApproving ? 'Approving…' : 'Approve all'}
@@ -1373,6 +1427,13 @@ export default function App() {
                           <span className={`hero-meta-hint ${pending.length ? 'warn' : 'ok'}`}>
                             {pending.length ? 'Action' : 'Clear'}
                           </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="hero-meta-label">Weekly captured</p>
+                        <p className="hero-meta-value">
+                          {formatMoney(orgStats?.weekly_captured_cents ?? 0)}
+                          <span className="hero-meta-hint ok">7d</span>
                         </p>
                       </div>
                       <div>
@@ -1693,13 +1754,14 @@ export default function App() {
                       <th>Approval threshold</th>
                       <th>Allowlist</th>
                       <th>Status</th>
+                      <th>Last activity</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAgents.length === 0 ? (
                       <tr>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <EmptyState title="No matching agents" description="Try a different search term." />
                         </td>
                       </tr>
@@ -1741,6 +1803,12 @@ export default function App() {
                           </div>
                         </td>
                         <td><StatusBadge status={a.status} /></td>
+                        <td className="muted">
+                          {(() => {
+                            const last = agentLastActivity(authorizations, a.id);
+                            return last ? formatRelative(last) : '—';
+                          })()}
+                        </td>
                         <td className="actions">
                           <button type="button" className="btn btn-sm btn-ghost" onClick={() => openEditAgent(a)}>Edit</button>
                           {a.status !== 'disabled' && (
@@ -1929,6 +1997,7 @@ export default function App() {
                                 </>
                               )}
                               {a.status === 'approved' && (
+                                <>
                                 <button
                                   className="btn btn-sm btn-primary"
                                   onClick={(e) => { e.stopPropagation(); setConfirmCaptureId(a.id); }}
@@ -1936,6 +2005,26 @@ export default function App() {
                                 >
                                   Capture
                                 </button>
+                                <button
+                                  className="btn btn-sm btn-ghost"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    setActionLoading(`revoke-${a.id}`);
+                                    try {
+                                      await api.revoke(a.id);
+                                      showToast('Authorization revoked');
+                                      await refresh();
+                                    } catch (err) {
+                                      setError(err instanceof Error ? err.message : 'Revoke failed');
+                                    } finally {
+                                      setActionLoading(null);
+                                    }
+                                  }}
+                                  disabled={actionLoading === `revoke-${a.id}`}
+                                >
+                                  Revoke
+                                </button>
+                                </>
                               )}
                             </td>
                           </tr>
@@ -2162,6 +2251,14 @@ export default function App() {
                             <button
                               type="button"
                               className="btn btn-sm btn-ghost"
+                              onClick={() => testWebhook(w)}
+                              disabled={actionLoading === `test-webhook-${w.id}`}
+                            >
+                              Test
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-ghost"
                               onClick={() => toggleWebhook(w)}
                               disabled={actionLoading === `webhook-${w.id}`}
                             >
@@ -2315,6 +2412,11 @@ export default function App() {
                   }}
                   placeholder='{"order_id": "ord_123"}'
                 />
+                {simDuplicate && (
+                  <p className="form-hint" style={{ color: 'var(--warning-text)' }}>
+                    A matching pending or approved request already exists for this agent, merchant, and amount.
+                  </p>
+                )}
                 <button className="btn btn-primary btn-full" onClick={simulateSpend} disabled={simulating}>
                   {simulating ? 'Submitting…' : 'Request authorization'}
                 </button>

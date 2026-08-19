@@ -39,20 +39,30 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (method !== 'GET' && method !== 'HEAD' && !headers['Idempotency-Key']) {
     headers['Idempotency-Key'] = crypto.randomUUID();
   }
-  const res = await fetch(path, { ...options, headers });
-  if (!res.ok) {
+
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(path, { ...options, headers });
+    if (res.ok) return res.json();
+    if (res.status >= 500 && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+      continue;
+    }
     const err = await res.json().catch(() => ({ error: { message: res.statusText } }));
-    throw new Error(err.error?.message ?? 'Request failed');
+    lastError = new Error(err.error?.message ?? 'Request failed');
+    break;
   }
-  return res.json();
+  throw lastError ?? new Error('Request failed');
 }
 
 export const api = {
   health: () => request<{ status: string; service: string; version: string; uptime_seconds: number }>('/health'),
+  stats: () => request<OrgStats>('/v1/stats'),
   agents: () => request<{ data: Agent[] }>('/v1/agents'),
-  authorizations: (status?: string, limit = 100, offset = 0) => {
+  authorizations: (status?: string, limit = 100, offset = 0, agentId?: string) => {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
+    if (agentId) params.set('agent_id', agentId);
     params.set('limit', String(limit));
     params.set('offset', String(offset));
     return request<{ data: Authorization[]; total: number; limit: number; offset: number }>(
@@ -70,6 +80,7 @@ export const api = {
   deny: (id: string, body?: object) =>
     request<Authorization>(`/v1/authorizations/${id}/deny`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   capture: (id: string) => request<Authorization>(`/v1/authorizations/${id}/capture`, { method: 'POST' }),
+  revoke: (id: string) => request<Authorization>(`/v1/authorizations/${id}/revoke`, { method: 'POST' }),
   createAgent: (body: object) =>
     request<Agent>('/v1/agents', { method: 'POST', body: JSON.stringify(body) }),
   updateAgentStatus: (id: string, status: string) =>
@@ -85,6 +96,8 @@ export const api = {
     request<WebhookEndpoint>(`/v1/webhook_endpoints/${id}`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
   deleteWebhook: (id: string) =>
     request<{ deleted: boolean; id: string }>(`/v1/webhook_endpoints/${id}`, { method: 'DELETE' }),
+  testWebhook: (id: string) =>
+    request<{ sent: boolean; event: string }>(`/v1/webhook_endpoints/${id}/test`, { method: 'POST' }),
   organization: () => request<Organization>('/v1/organization'),
   authorization: (id: string) => request<Authorization>(`/v1/authorizations/${id}`),
 };
@@ -140,4 +153,12 @@ export interface Organization {
   name: string;
   created_at: string;
   api_key_preview: string;
+}
+
+export interface OrgStats {
+  pending_approvals: number;
+  captured_total_cents: number;
+  weekly_captured_cents: number;
+  blocked_count: number;
+  active_agents: number;
 }

@@ -8,6 +8,8 @@ import { authorizationRoutes } from './routes/authorizations.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { organizationRoutes } from './routes/organization.js';
 import { ledgerRoutes } from './routes/ledger.js';
+import { statsRoutes } from './routes/stats.js';
+import { docsRoutes } from './routes/docs.js';
 
 const app = new Hono();
 const startedAt = Date.now();
@@ -31,6 +33,8 @@ v1.route('/', authorizationRoutes);
 v1.route('/', webhookRoutes);
 v1.route('/', organizationRoutes);
 v1.route('/', ledgerRoutes);
+v1.route('/', statsRoutes);
+v1.route('/', docsRoutes);
 
 app.route('/v1', v1);
 
