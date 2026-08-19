@@ -2256,10 +2256,13 @@ tbody tr:last-child td { border-bottom: none; }
   margin-bottom: 16px;
 }
 
-.agents-search {
-  flex: 1;
-  max-width: 280px;
-  margin-right: auto;
+.agent-filter-bar {
+  align-items: center;
+  gap: 12px;
+}
+
+.agent-filter-bar .field-select {
+  max-width: 220px;
 }
 
 .create-agent-form {

@@ -476,6 +476,8 @@ export default function App() {
   const [theme, setThemeState] = useState<'dark' | 'light'>(getTheme());
   const [agentSearch, setAgentSearch] = useState('');
   const [apiHealth, setApiHealth] = useState<{ version: string; uptime_seconds: number } | null>(null);
+  const [agentFilter, setAgentFilter] = useState('all');
+  const [ledgerTypeFilter, setLedgerTypeFilter] = useState('all');
   const AUTH_PAGE_SIZE = 25;
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -702,7 +704,8 @@ export default function App() {
       a.reason.toLowerCase().includes(q) ||
       a.id.toLowerCase().includes(q);
     const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesAgent = agentFilter === 'all' || a.agent_id === agentFilter;
+    return matchesSearch && matchesStatus && matchesAgent;
   });
 
   async function handleAction(action: 'approve' | 'deny' | 'capture', id: string, denyReasonText?: string) {
@@ -1781,6 +1784,20 @@ export default function App() {
                     </button>
                   );
                 })}
+              </div>
+              <div className="filter-bar agent-filter-bar">
+                <label className="field-label" htmlFor="agent-filter">Agent</label>
+                <select
+                  id="agent-filter"
+                  className="field-input field-select"
+                  value={agentFilter}
+                  onChange={(e) => setAgentFilter(e.target.value)}
+                >
+                  <option value="all">All agents</option>
+                  {agents.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
               </div>
               {!initialLoad && (
                 <div className="results-bar">
