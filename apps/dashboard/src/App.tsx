@@ -106,6 +106,15 @@ const STATUS_FILTERS = [
   { id: 'denied', label: 'Denied' },
 ];
 
+const LEDGER_TYPE_FILTERS = [
+  { id: 'all', label: 'All events' },
+  { id: 'authorization_requested', label: 'Requested' },
+  { id: 'authorization_approved', label: 'Approved' },
+  { id: 'authorization_blocked', label: 'Blocked' },
+  { id: 'authorization_denied', label: 'Denied' },
+  { id: 'spend_captured', label: 'Captured' },
+];
+
 function formatMoney(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
@@ -944,7 +953,9 @@ export default function App() {
     ? authorizations.find((a) => a.id === confirmCaptureId)
     : null;
 
-  const ledgerGroups = groupLedgerByDate(ledger);
+  const ledgerGroups = groupLedgerByDate(
+    ledger.filter((e) => ledgerTypeFilter === 'all' || e.type === ledgerTypeFilter),
+  );
 
   const agentMap = Object.fromEntries(agents.map((a) => [a.id, a]));
   const agentName = (id: string) => agentMap[id]?.name ?? id.slice(0, 8);
@@ -2027,6 +2038,18 @@ export default function App() {
                     Export CSV
                   </button>
                 )}
+              </div>
+              <div className="filter-bar">
+                {LEDGER_TYPE_FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    className={`filter-chip ${ledgerTypeFilter === f.id ? 'active' : ''}`}
+                    onClick={() => setLedgerTypeFilter(f.id)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
               {initialLoad ? (
                 <TableSkeleton cols={4} />
