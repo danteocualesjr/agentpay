@@ -446,6 +446,7 @@ export default function App() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [confirmDenyId, setConfirmDenyId] = useState<string | null>(null);
+  const [denyReason, setDenyReason] = useState('');
   const [confirmCaptureId, setConfirmCaptureId] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -687,14 +688,14 @@ export default function App() {
     return matchesSearch && matchesStatus;
   });
 
-  async function handleAction(action: 'approve' | 'deny' | 'capture', id: string) {
+  async function handleAction(action: 'approve' | 'deny' | 'capture', id: string, denyReasonText?: string) {
     setError('');
     setDismissedError('');
     const key = `${action}-${id}`;
     setActionLoading(key);
     try {
       if (action === 'approve') await api.approve(id);
-      if (action === 'deny') await api.deny(id);
+      if (action === 'deny') await api.deny(id, denyReasonText ? { reason: denyReasonText } : undefined);
       if (action === 'capture') await api.capture(id);
       const labels = { approve: 'Approved', deny: 'Denied', capture: 'Captured' };
       showToast(`${labels[action]} successfully`);
@@ -985,8 +986,16 @@ export default function App() {
               This will reject the <strong>{formatMoney(denyTarget.amount_cents)}</strong> request
               from <strong>{denyTarget.merchant}</strong>. This action cannot be undone.
             </p>
+            <label className="field-label" htmlFor="deny-reason">Reason (optional)</label>
+            <input
+              id="deny-reason"
+              className="field-input"
+              value={denyReason}
+              onChange={(e) => setDenyReason(e.target.value)}
+              placeholder="Policy violation, duplicate request, etc."
+            />
             <div className="confirm-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setConfirmDenyId(null)}>
+              <button type="button" className="btn btn-ghost" onClick={() => { setConfirmDenyId(null); setDenyReason(''); }}>
                 Cancel
               </button>
               <button
@@ -994,8 +1003,10 @@ export default function App() {
                 className="btn btn-danger"
                 onClick={async () => {
                   const id = confirmDenyId!;
+                  const reason = denyReason.trim();
                   setConfirmDenyId(null);
-                  await handleAction('deny', id);
+                  setDenyReason('');
+                  await handleAction('deny', id, reason || undefined);
                 }}
                 disabled={actionLoading === `deny-${confirmDenyId}`}
               >

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { evaluatePolicy } from '@agentpay/policy-core';
-import { authorizeSpendSchema, generateId } from '@agentpay/shared';
+import { authorizeSpendSchema, denyAuthorizationSchema, generateId } from '@agentpay/shared';
 import { db } from '../db/index.js';
 import { appendLedger, dispatchWebhook } from '../services/webhooks.js';
 import { getDailyBudgetUsage } from '../services/budget.js';
@@ -187,7 +187,7 @@ authorizationRoutes.post('/authorizations/:id/approve', (c) => {
   return c.json(parseAuthorization(updated as Record<string, unknown>));
 });
 
-authorizationRoutes.post('/authorizations/:id/deny', (c) => {
+authorizationRoutes.post('/authorizations/:id/deny', async (c) => {
   const org = c.get('org') as Org;
   const id = c.req.param('id');
   const auth = db
@@ -201,6 +201,13 @@ authorizationRoutes.post('/authorizations/:id/deny', (c) => {
     return c.json({ error: { type: 'invalid_request', message: `Cannot deny authorization with status ${auth.status}` } }, 400);
   }
 
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = denyAuthorizationSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: { type: 'invalid_request', message: parsed.error.message } }, 400);
+  }
+  const denyReason = parsed.data.reason ?? 'Manually denied';
+
   db.prepare('UPDATE authorizations SET status = ? WHERE id = ?').run('denied', id);
 
   appendLedger(
@@ -209,7 +216,7 @@ authorizationRoutes.post('/authorizations/:id/deny', (c) => {
     id,
     'authorization_denied',
     auth.amount_cents as number,
-    'Manually denied',
+    denyReason,
   );
 
   dispatchWebhook(org.id, 'authorization.denied', {

@@ -24,6 +24,10 @@ export const updateWebhookEndpointSchema = z.object({
   enabled: z.boolean(),
 });
 
+export const denyAuthorizationSchema = z.object({
+  reason: z.string().min(1).optional(),
+});
+
 export const updateAgentStatusSchema = z.object({
   status: z.enum(['active', 'paused', 'disabled']),
 });

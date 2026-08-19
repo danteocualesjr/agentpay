@@ -66,7 +66,8 @@ export const api = {
   authorize: (agentId: string, body: object) =>
     request<Authorization>(`/v1/agents/${agentId}/authorize`, { method: 'POST', body: JSON.stringify(body) }),
   approve: (id: string) => request<Authorization>(`/v1/authorizations/${id}/approve`, { method: 'POST' }),
-  deny: (id: string) => request<Authorization>(`/v1/authorizations/${id}/deny`, { method: 'POST' }),
+  deny: (id: string, body?: object) =>
+    request<Authorization>(`/v1/authorizations/${id}/deny`, { method: 'POST', body: JSON.stringify(body ?? {}) }),
   capture: (id: string) => request<Authorization>(`/v1/authorizations/${id}/capture`, { method: 'POST' }),
   createAgent: (body: object) =>
     request<Agent>('/v1/agents', { method: 'POST', body: JSON.stringify(body) }),
