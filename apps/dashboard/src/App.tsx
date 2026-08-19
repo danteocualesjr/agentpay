@@ -438,6 +438,7 @@ export default function App() {
   const [simAmount, setSimAmount] = useState('499');
   const [simMerchant, setSimMerchant] = useState('api.search.io');
   const [simReason, setSimReason] = useState('Paid search API query batch');
+  const [simMetadata, setSimMetadata] = useState('{}');
   const [simulating, setSimulating] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [dismissedError, setDismissedError] = useState('');
@@ -712,10 +713,15 @@ export default function App() {
     setError('');
     setSimulating(true);
     try {
+      let metadata: Record<string, unknown> = {};
+      if (simMetadata.trim()) {
+        metadata = JSON.parse(simMetadata) as Record<string, unknown>;
+      }
       const result = await api.authorize(selectedAgent, {
         amount_cents: Number(simAmount),
         merchant: simMerchant,
         reason: simReason,
+        metadata,
       });
       showToast(`Authorization ${result.status}`);
       await refresh();
@@ -2240,6 +2246,18 @@ export default function App() {
                     setSimReason(e.target.value);
                     setActivePreset(null);
                   }}
+                />
+                <label className="field-label" htmlFor="sim-metadata">Metadata (JSON)</label>
+                <textarea
+                  id="sim-metadata"
+                  className="field-input"
+                  rows={3}
+                  value={simMetadata}
+                  onChange={(e) => {
+                    setSimMetadata(e.target.value);
+                    setActivePreset(null);
+                  }}
+                  placeholder='{"order_id": "ord_123"}'
                 />
                 <button className="btn btn-primary btn-full" onClick={simulateSpend} disabled={simulating}>
                   {simulating ? 'Submitting…' : 'Request authorization'}
