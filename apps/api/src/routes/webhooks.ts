@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { createWebhookEndpointSchema, generateId, updateWebhookEndpointSchema } from '@agentpay/shared';
 import { db } from '../db/index.js';
+import { dispatchWebhook } from '../services/webhooks.js';
 
 type Org = { id: string; name: string; api_key: string; webhook_secret: string; created_at: string };
 
@@ -73,4 +74,18 @@ webhookRoutes.delete('/webhook_endpoints/:id', (c) => {
     return c.json({ error: { type: 'not_found', message: 'Webhook endpoint not found' } }, 404);
   }
   return c.json({ deleted: true, id });
+});
+
+webhookRoutes.post('/webhook_endpoints/:id/test', (c) => {
+  const org = c.get('org') as Org;
+  const id = c.req.param('id');
+  const endpoint = db
+    .prepare('SELECT * FROM webhook_endpoints WHERE id = ? AND org_id = ?')
+    .get(id, org.id);
+  if (!endpoint) {
+    return c.json({ error: { type: 'not_found', message: 'Webhook endpoint not found' } }, 404);
+  }
+
+  dispatchWebhook(org.id, 'test.ping', { webhook_id: id, message: 'AgentPay test ping' });
+  return c.json({ sent: true, event: 'test.ping' });
 });
