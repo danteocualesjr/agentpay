@@ -12,3 +12,6 @@ db.pragma('foreign_keys = ON');
 
 const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
 db.exec(schema);
+
+const idempotencyCutoff = new Date(Date.now() - 86400000).toISOString();
+db.prepare('DELETE FROM idempotency_keys WHERE created_at < ?').run(idempotencyCutoff);
