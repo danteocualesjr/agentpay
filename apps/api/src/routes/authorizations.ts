@@ -30,25 +30,28 @@ export const authorizationRoutes = new Hono();
 authorizationRoutes.get('/authorizations', (c) => {
   const org = c.get('org') as Org;
   const status = c.req.query('status');
+  const agentId = c.req.query('agent_id');
   const limit = Math.min(Number(c.req.query('limit') ?? 100), 500);
   const offset = Math.max(Number(c.req.query('offset') ?? 0), 0);
   let rows;
   let total;
+  const conditions = ['org_id = ?'];
+  const params: unknown[] = [org.id];
   if (status) {
-    rows = db
-      .prepare('SELECT * FROM authorizations WHERE org_id = ? AND status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
-      .all(org.id, status, limit, offset);
-    total = db
-      .prepare('SELECT COUNT(*) as count FROM authorizations WHERE org_id = ? AND status = ?')
-      .get(org.id, status) as { count: number };
-  } else {
-    rows = db
-      .prepare('SELECT * FROM authorizations WHERE org_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
-      .all(org.id, limit, offset);
-    total = db
-      .prepare('SELECT COUNT(*) as count FROM authorizations WHERE org_id = ?')
-      .get(org.id) as { count: number };
+    conditions.push('status = ?');
+    params.push(status);
   }
+  if (agentId) {
+    conditions.push('agent_id = ?');
+    params.push(agentId);
+  }
+  const where = conditions.join(' AND ');
+  rows = db
+    .prepare(`SELECT * FROM authorizations WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+    .all(...params, limit, offset);
+  total = db
+    .prepare(`SELECT COUNT(*) as count FROM authorizations WHERE ${where}`)
+    .get(...params) as { count: number };
   return c.json({
     data: rows.map((r) => parseAuthorization(r as Record<string, unknown>)),
     total: total.count,
@@ -264,6 +267,42 @@ authorizationRoutes.post('/authorizations/:id/capture', (c) => {
   );
 
   dispatchWebhook(org.id, 'spend.captured', {
+    authorization_id: id,
+    agent_id: auth.agent_id,
+    amount_cents: auth.amount_cents,
+    merchant: auth.merchant,
+  });
+
+  const updated = db.prepare('SELECT * FROM authorizations WHERE id = ?').get(id);
+  return c.json(parseAuthorization(updated as Record<string, unknown>));
+});
+
+authorizationRoutes.post('/authorizations/:id/revoke', (c) => {
+  const org = c.get('org') as Org;
+  const id = c.req.param('id');
+  const auth = db
+    .prepare('SELECT * FROM authorizations WHERE id = ? AND org_id = ?')
+    .get(id, org.id) as Record<string, unknown> | undefined;
+
+  if (!auth) {
+    return c.json({ error: { type: 'not_found', message: 'Authorization not found' } }, 404);
+  }
+  if (auth.status !== 'approved') {
+    return c.json({ error: { type: 'invalid_request', message: `Cannot revoke authorization with status ${auth.status}` } }, 400);
+  }
+
+  db.prepare('UPDATE authorizations SET status = ? WHERE id = ?').run('denied', id);
+
+  appendLedger(
+    org.id,
+    auth.agent_id as string,
+    id,
+    'authorization_denied',
+    auth.amount_cents as number,
+    'Revoked before capture',
+  );
+
+  dispatchWebhook(org.id, 'authorization.denied', {
     authorization_id: id,
     agent_id: auth.agent_id,
     amount_cents: auth.amount_cents,
