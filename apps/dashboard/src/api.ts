@@ -48,6 +48,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  health: () => request<{ status: string; service: string; version: string; uptime_seconds: number }>('/health'),
   agents: () => request<{ data: Agent[] }>('/v1/agents'),
   authorizations: (status?: string, limit = 100, offset = 0) => {
     const params = new URLSearchParams();

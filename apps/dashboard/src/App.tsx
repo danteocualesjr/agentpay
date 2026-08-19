@@ -475,6 +475,7 @@ export default function App() {
   const [detailAuth, setDetailAuth] = useState<Authorization | null>(null);
   const [theme, setThemeState] = useState<'dark' | 'light'>(getTheme());
   const [agentSearch, setAgentSearch] = useState('');
+  const [apiHealth, setApiHealth] = useState<{ version: string; uptime_seconds: number } | null>(null);
   const AUTH_PAGE_SIZE = 25;
   const [clock, setClock] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -522,6 +523,21 @@ export default function App() {
   useEffect(() => {
     if (apiKey) refresh();
   }, [apiKey, refresh]);
+
+  useEffect(() => {
+    if (!apiKey) return;
+    async function pollHealth() {
+      try {
+        const h = await api.health();
+        setApiHealth({ version: h.version, uptime_seconds: h.uptime_seconds });
+      } catch {
+        setApiHealth(null);
+      }
+    }
+    pollHealth();
+    const id = setInterval(pollHealth, 30000);
+    return () => clearInterval(id);
+  }, [apiKey]);
 
   useEffect(() => {
     const timeFmt = new Intl.DateTimeFormat('en-GB', {
@@ -1162,9 +1178,9 @@ export default function App() {
         <header className="topbar">
           <div className="topbar-left">
             <span className="test-mode-pill">Test mode</span>
-            <div className="system-status" aria-live="polite">
+            <div className="system-status" aria-live="polite" title={apiHealth ? `Uptime ${apiHealth.uptime_seconds}s` : undefined}>
               <span className="system-status-dot" aria-hidden="true" />
-              System Online
+              {apiHealth ? `API v${apiHealth.version}` : 'Connecting…'}
             </div>
             <button
               type="button"
